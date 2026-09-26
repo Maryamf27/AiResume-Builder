@@ -11,6 +11,22 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
  *  3. Redirect authenticated requests away from auth pages → /dashboard.
  */
 export default async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Public pages should remain previewable even when auth integration
+  // variables have not been provisioned yet. Protected routes fail closed.
+  if (!supabaseUrl || !supabaseAnonKey) {
+    if (pathname.startsWith("/dashboard")) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = "/auth/login";
+      return NextResponse.redirect(loginUrl);
+    }
+
+    return NextResponse.next();
+  }
+
   // We need a mutable response so that the Supabase client can set/update
   // the session cookies before we return.
   let response = NextResponse.next({
@@ -56,8 +72,6 @@ export default async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
 
   // Protect /dashboard (and any future routes under it).
   if (pathname.startsWith("/dashboard") && !user) {
