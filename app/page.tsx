@@ -1,3 +1,4 @@
+import Link from "next/link";
 import Button from "@/components/ui/button";
 import IconButton from "@/components/ui/icon-button";
 import {
@@ -76,18 +77,18 @@ export default function Home() {
             >
               Templates
             </a>
-            <a
-              href="#pricing"
-              className="text-sm text-charcoal/80 transition-colors hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive-light focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
-            >
-              Pricing
-            </a>
-            <a
-              href="#signin"
+            <Link
+              href="/auth/login"
               className="text-sm text-charcoal/80 transition-colors hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive-light focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
             >
               Sign in
-            </a>
+            </Link>
+            <Link
+              href="/auth/signup"
+              className="inline-flex h-9 items-center rounded-md bg-olive px-4 text-sm font-medium text-cream transition-colors hover:bg-olive-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive-light"
+            >
+              Create account
+            </Link>
           </nav>
           <div className="md:hidden">
             <IconButton
@@ -120,12 +121,16 @@ export default function Home() {
                   the generic SaaS feel.
                 </p>
                 <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-                  <Button variant="primary" size="lg" type="button">
-                    Create Resume
-                  </Button>
-                  <Button variant="outline" size="lg" type="button">
-                    View Templates
-                  </Button>
+                  <Link href="/auth/signup">
+                    <Button variant="primary" size="lg" type="button">
+                      Create account
+                    </Button>
+                  </Link>
+                  <Link href="/auth/login">
+                    <Button variant="outline" size="lg" type="button">
+                      Sign in
+                    </Button>
+                  </Link>
                 </div>
               </div>
 
@@ -182,12 +187,16 @@ export default function Home() {
                 preview, and export, from your first draft to your final PDF.
               </p>
               <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                <Button variant="primary" size="md" type="button">
-                  Create Resume
-                </Button>
-                <Button variant="ghost" size="md" type="button">
-                  View Templates
-                </Button>
+                <Link href="/auth/signup">
+                  <Button variant="primary" size="md" type="button">
+                    Create account
+                  </Button>
+                </Link>
+                <Link href="/auth/login">
+                  <Button variant="ghost" size="md" type="button">
+                    Sign in
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
