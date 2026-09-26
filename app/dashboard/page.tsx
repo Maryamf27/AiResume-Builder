@@ -41,7 +41,9 @@ export default async function DashboardPage() {
     .eq("id", user.id)
     .maybeSingle();
 
-  const displayName = profile?.full_name ?? (fullName as string);
+  const displayName =
+    (profile as { full_name: string | null } | null)?.full_name ??
+    fullName;
 
   return (
     <main className="min-h-screen bg-cream px-5 sm:px-8">
