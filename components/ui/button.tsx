@@ -34,20 +34,39 @@ const variants: Record<ButtonVariant, string> = {
   destructive: "bg-destructive text-cream hover:bg-destructive/90",
 };
 
-export default function Button({
-  className,
+export function buttonClassName({
   variant = "primary",
   size = "md",
-  type = "button",
-  ...props
-}: ButtonProps) {
-  return (
-    <button
-      type={type}
-      className={cn(base, sizes[size], variants[variant], className)}
-      {...props}
-    />
-  );
+  className,
+}: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  className?: string;
+}) {
+  return cn(base, sizes[size], variants[variant], className);
 }
 
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  function Button(
+    {
+      className,
+      variant = "primary",
+      size = "md",
+      type = "button",
+      ...props
+    },
+    ref
+  ) {
+    return (
+      <button
+        ref={ref}
+        type={type}
+        className={buttonClassName({ variant, size, className })}
+        {...props}
+      />
+    );
+  }
+);
+
+export default Button;
 export { Button, type ButtonVariant as ButtonVariant, type ButtonSize as ButtonSize };

@@ -17,24 +17,32 @@ const sizes: Record<IconButtonSize, string> = {
   lg: "h-11 w-11 p-0",
 };
 
-export default function IconButton({
-  className,
-  size = "md",
-  variant = "ghost",
-  children,
-  "aria-label": ariaLabel,
-  ...props
-}: IconButtonProps) {
-  return (
-    <Button
-      variant={variant}
-      aria-label={ariaLabel}
-      className={cn("rounded-md", sizes[size], className)}
-      {...props}
-    >
-      {children}
-    </Button>
-  );
-}
+const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
+  function IconButton(
+    {
+      className,
+      size = "md",
+      variant = "ghost",
+      children,
+      "aria-label": ariaLabel,
+      ...props
+    },
+    ref
+  ) {
+    return (
+      <Button
+        ref={ref}
+        variant={variant}
+        aria-label={ariaLabel}
+        className={cn("rounded-md", sizes[size], className)}
+        {...props}
+      >
+        {children}
+      </Button>
+    );
+  }
+);
+
+export default IconButton;
 
 export { IconButton };
