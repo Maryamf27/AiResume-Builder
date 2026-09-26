@@ -1,26 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --cream: #F5F2EB;
+  --cream-light: #FAF8F5;
+  --cream-dark: #EBE5D8;
+  --olive: #4B6B54;
+  --olive-light: #5A7E63;
+  --olive-dark: #3B5342;
+  --charcoal: #2C2C2A;
+  --destructive: #B04A3E;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-cream: var(--cream);
+  --color-cream-light: var(--cream-light);
+  --color-cream-dark: var(--cream-dark);
+  --color-olive: var(--olive);
+  --color-olive-light: var(--olive-light);
+  --color-olive-dark: var(--olive-dark);
+  --color-charcoal: var(--charcoal);
+  --color-destructive: var(--destructive);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-playfair-display);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+@source "../app/**/*.{ts,tsx}";
+@source "../components/**/*.{ts,tsx}";
+@source "../lib/**/*.{ts,tsx}";
+@source "../types/**/*.{ts,tsx}";
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--cream);
+  color: var(--charcoal);
 }
