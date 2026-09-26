@@ -30,7 +30,7 @@ export default async function DashboardPage() {
   }
 
   const fullName =
-    (user.user_metadata?.full_name ??
+    user.user_metadata?.full_name ??
     user.user_metadata?.fullName ??
     user.email?.split("@")[0] ??
     "there";
