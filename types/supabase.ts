@@ -9,6 +9,36 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      feedback: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          type: "Bug Report" | "Feature Request" | "General Feedback";
+          message: string;
+          page_url: string | null;
+          status: "new" | "reviewed" | "resolved";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          type: "Bug Report" | "Feature Request" | "General Feedback";
+          message: string;
+          page_url?: string | null;
+          status?: "new" | "reviewed" | "resolved";
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          type?: "Bug Report" | "Feature Request" | "General Feedback";
+          message?: string;
+          page_url?: string | null;
+          status?: "new" | "reviewed" | "resolved";
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;
