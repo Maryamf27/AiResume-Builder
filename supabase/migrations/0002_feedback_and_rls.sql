@@ -25,5 +25,4 @@ with check (user_id is null);
 
 revoke select, update, delete on public.feedback from anon, authenticated;
 grant insert on public.feedback to anon, authenticated;
-EOF
 
