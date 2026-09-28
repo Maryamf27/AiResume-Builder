@@ -36,6 +36,7 @@ export function createEmptyResumeData(): ResumeData {
     projects: [],
     certifications: [],
     languages: [],
+    templateId: "",
   };
 }
 

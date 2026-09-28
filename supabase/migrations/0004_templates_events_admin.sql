@@ -206,3 +206,10 @@ create policy "template_assets_delete_admin"
   on storage.objects for delete
   to authenticated
   using (bucket_id = 'template-assets' and public.is_admin());
+
+-- ---------------------------------------------------------------------------
+-- Making yourself the first admin (run once in the SQL editor, which runs as
+-- the postgres owner and is not affected by the column restriction above):
+--
+--   update public.profiles set role = 'admin' where email = 'you@example.com';
+-- ---------------------------------------------------------------------------

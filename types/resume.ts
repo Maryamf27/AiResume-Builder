@@ -68,6 +68,8 @@ export interface ResumeData {
   projects: ProjectEntry[];
   certifications: CertificationEntry[];
   languages: LanguageEntry[];
+  /** Chosen template id. Empty until the user picks one (the first published template is used). */
+  templateId: string;
 }
 export type ResumeArrayField =
   | "experience"

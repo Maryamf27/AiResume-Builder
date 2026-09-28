@@ -38,13 +38,12 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name")
+    .select("full_name, role")
     .eq("id", user.id)
     .maybeSingle();
 
-  const displayName =
-    (profile as { full_name: string | null } | null)?.full_name ??
-    fullName;
+  const displayName = profile?.full_name ?? fullName;
+  const isAdmin = profile?.role === "admin";
 
   return (
     <main className="min-h-screen bg-cream px-5 sm:px-8">
@@ -68,6 +67,11 @@ export default async function DashboardPage() {
             <Link href="/builder" className={buttonClassName({})}>
               Open resume builder
             </Link>
+            {isAdmin && (
+              <Link href="/admin/templates" className={buttonClassName({ variant: "outline" })}>
+                Admin: templates
+              </Link>
+            )}
             <form action={signOutAction}>
               <Button type="submit" variant="secondary">
                 Sign out

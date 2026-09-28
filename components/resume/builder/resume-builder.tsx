@@ -10,7 +10,7 @@ import CompletenessBar from "@/components/resume/builder/completeness-bar";
 import GuestImportBanner from "@/components/resume/builder/guest-import-banner";
 import GuestNotice from "@/components/resume/builder/guest-notice";
 import ActiveSectionForm from "@/components/resume/builder/active-section-form";
-import ResumePreview from "@/components/resume/preview/resume-preview";
+import PreviewPane from "@/components/resume/builder/preview-pane";
 
 export default function ResumeBuilder() {
   return (
@@ -66,7 +66,7 @@ function ResumeBuilderShell() {
           </div>
 
           <div className={cn(mobileView === "edit" ? "hidden lg:block" : "block")}>
-            <ResumePreview />
+            <PreviewPane />
           </div>
         </div>
       </div>

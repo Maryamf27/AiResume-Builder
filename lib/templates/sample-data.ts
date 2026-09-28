@@ -76,4 +76,5 @@ export const sampleResume: ResumeData = {
     { id: "l1", language: "English", proficiency: "Native" },
     { id: "l2", language: "French", proficiency: "Conversational" },
   ],
+  templateId: "",
 };

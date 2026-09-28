@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 import { A4_HEIGHT_PX, A4_WIDTH_PX } from "@/lib/templates/render";
 
 /**
@@ -11,9 +12,11 @@ import { A4_HEIGHT_PX, A4_WIDTH_PX } from "@/lib/templates/render";
 export default function TemplateFrame({
   srcDoc,
   title = "Resume template preview",
+  className,
 }: {
   srcDoc: string;
   title?: string;
+  className?: string;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
@@ -39,7 +42,7 @@ export default function TemplateFrame({
   return (
     <div
       ref={wrapRef}
-      className="w-full overflow-hidden rounded-sm border border-cream-dark bg-white shadow-sm"
+      className={cn("w-full overflow-hidden rounded-sm border border-cream-dark bg-white shadow-sm", className)}
       style={{ height: height * scale }}
     >
       <iframe

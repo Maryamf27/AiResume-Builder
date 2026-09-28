@@ -133,6 +133,7 @@ export function sanitizeResumeData(raw: unknown): ResumeData {
     projects: sanitizeArray(r.projects, sanitizeProject),
     certifications: sanitizeArray(r.certifications, sanitizeCertification),
     languages: sanitizeArray(r.languages, sanitizeLanguage),
+    templateId: str(r.templateId),
   };
 }
 

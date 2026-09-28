@@ -32,6 +32,7 @@ import { clearGuestResume, loadGuestResume } from "@/lib/resume/storage";
 import { createGuestPersistenceAdapter } from "@/lib/resume/persistence/guest-adapter";
 import { createSupabasePersistenceAdapter } from "@/lib/resume/persistence/supabase-adapter";
 import type { ResumePersistenceAdapter } from "@/lib/resume/persistence/types";
+import type { PublishedTemplate } from "@/lib/templates/types";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 export type PersistenceMode = "guest" | "authenticated";
@@ -58,6 +59,12 @@ interface ResumeBuilderContextValue {
   importGuestResume: () => Promise<void>;
   discardGuestResume: () => void;
   dismissGuestImportNotice: () => void;
+
+  templates: PublishedTemplate[];
+  templatesStatus: "loading" | "ready" | "error";
+  /** The template currently used for the preview, or null when none are published. */
+  selectedTemplate: PublishedTemplate | null;
+  selectTemplate: (id: string) => void;
 
   activeSection: ResumeSectionId;
   setActiveSection: (section: ResumeSectionId) => void;
@@ -121,6 +128,9 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
   const [pendingGuest, setPendingGuest] = useState<ResumeRecord | null>(null);
   const [guestImportNotice, setGuestImportNotice] = useState(false);
   const [guestImportError, setGuestImportError] = useState<string | null>(null);
+
+  const [templates, setTemplates] = useState<PublishedTemplate[]>([]);
+  const [templatesStatus, setTemplatesStatus] = useState<"loading" | "ready" | "error">("loading");
 
   const recordIdRef = useRef<string>(createId());
   const createdAtRef = useRef<string>(new Date().toISOString());
@@ -215,6 +225,32 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
       bootstrapRunRef.current++;
     };
   }, [bootstrap]);
+
+  // Published templates are readable by everyone (guests included) through RLS.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await createClient()
+          .from("templates")
+          .select("id, name, slug, category, description, html, css")
+          .eq("is_published", true)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true });
+        if (cancelled) return;
+        if (error) throw error;
+        setTemplates(data ?? []);
+        setTemplatesStatus("ready");
+      } catch (err) {
+        if (cancelled) return;
+        console.error("Could not load templates:", err);
+        setTemplatesStatus("error");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const retryLoad = useCallback(() => {
     setLoadFailed(false);
@@ -503,6 +539,29 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
     [updateArrayField]
   );
 
+  // Falls back to the first published template when nothing is chosen yet,
+  // or when the chosen one was unpublished/deleted since.
+  const selectedTemplate = useMemo(
+    () => templates.find((t) => t.id === resumeData.templateId) ?? templates[0] ?? null,
+    [templates, resumeData.templateId]
+  );
+
+  const selectTemplate = useCallback(
+    (id: string) => {
+      if (id === selectedTemplate?.id) return;
+      setResumeData((prev) => ({ ...prev, templateId: id }));
+
+      // Usage analytics: fire-and-forget, never blocks or breaks the builder.
+      void createClient()
+        .from("template_events")
+        .insert({ template_id: id, user_id: userId, event_type: "selected" })
+        .then(({ error }) => {
+          if (error) console.warn("Could not record template selection:", error.message);
+        });
+    },
+    [selectedTemplate, userId]
+  );
+
   const completeness = useMemo(() => calculateCompleteness(resumeData), [resumeData]);
 
   const value: ResumeBuilderContextValue = {
@@ -522,6 +581,10 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
     importGuestResume,
     discardGuestResume,
     dismissGuestImportNotice,
+    templates,
+    templatesStatus,
+    selectedTemplate,
+    selectTemplate,
     activeSection,
     setActiveSection,
     updatePersonal,
