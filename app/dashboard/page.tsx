@@ -8,7 +8,8 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
-import Button from "@/components/ui/button";
+import Button, { buttonClassName } from "@/components/ui/button";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
 async function signOutAction() {
@@ -64,6 +65,9 @@ export default async function DashboardPage() {
             </p>
           </CardContent>
           <CardFooter className="flex-col gap-3 sm:flex-row sm:justify-end">
+            <Link href="/builder" className={buttonClassName({})}>
+              Open resume builder
+            </Link>
             <form action={signOutAction}>
               <Button type="submit" variant="secondary">
                 Sign out

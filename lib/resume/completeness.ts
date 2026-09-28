@@ -1,15 +1,40 @@
 import type { ResumeData } from "@/types/resume";
 
-export function calculateCompleteness(data: ResumeData): number {
-  const checks: boolean[] = [
-    Boolean(data.personal.firstName.trim() && data.personal.lastName.trim()),
-    Boolean(data.personal.title.trim()),
-    Boolean(data.personal.email.trim() || data.personal.phone.trim()),
-    Boolean(data.summary.trim().length > 0),
-    Boolean(data.experience.length > 0 || data.education.length > 0),
-    Boolean(data.skills.length > 0),
-  ];
+/**
+ * Each section contributes its own share so that filling in one section
+ * (e.g. Personal Information) can never account for half of the resume.
+ * Weights add up to 100.
+ */
+const WEIGHTS = {
+  personal: 25,
+  summary: 15,
+  experience: 20,
+  education: 15,
+  skills: 15,
+  projects: 5,
+  certifications: 3,
+  languages: 2,
+} as const;
 
-  const completed = checks.filter(Boolean).length;
-  return Math.round((completed / checks.length) * 100);
+export function calculateCompleteness(data: ResumeData): number {
+  const p = data.personal;
+
+  const personalChecks = [
+    Boolean(p.firstName.trim() && p.lastName.trim()),
+    Boolean(p.title.trim()),
+    Boolean(p.email.trim() || p.phone.trim()),
+  ];
+  const personalRatio = personalChecks.filter(Boolean).length / personalChecks.length;
+
+  const score =
+    WEIGHTS.personal * personalRatio +
+    (data.summary.trim().length > 0 ? WEIGHTS.summary : 0) +
+    (data.experience.length > 0 ? WEIGHTS.experience : 0) +
+    (data.education.length > 0 ? WEIGHTS.education : 0) +
+    (data.skills.length > 0 ? WEIGHTS.skills : 0) +
+    (data.projects.length > 0 ? WEIGHTS.projects : 0) +
+    (data.certifications.length > 0 ? WEIGHTS.certifications : 0) +
+    (data.languages.length > 0 ? WEIGHTS.languages : 0);
+
+  return Math.round(score);
 }

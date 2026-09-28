@@ -34,7 +34,7 @@ export default function ExperienceForm() {
             onRemove={() => removeExperience(entry.id)}
             removeLabel="Remove experience entry"
           >
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
               <FormField label="Job title" htmlFor={`exp-title-${entry.id}`}>
                 <Input
                   id={`exp-title-${entry.id}`}
@@ -62,7 +62,7 @@ export default function ExperienceForm() {
               />
             </FormField>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
               <FormField label="Start date" htmlFor={`exp-start-${entry.id}`}>
                 <Input
                   id={`exp-start-${entry.id}`}

@@ -12,7 +12,7 @@ export default function FormField({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex min-w-0 flex-col gap-1.5">
       <label htmlFor={htmlFor} className="text-sm font-medium text-charcoal">
         {label}
         {optional && <span className="ml-1 font-normal text-charcoal/45">(optional)</span>}

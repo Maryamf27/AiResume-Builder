@@ -39,11 +39,87 @@ export interface Database {
         };
         Relationships: [];
       };
+      template_events: {
+        Row: {
+          id: string;
+          template_id: string;
+          user_id: string | null;
+          event_type: "selected" | "downloaded";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          template_id: string;
+          user_id?: string | null;
+          event_type: "selected" | "downloaded";
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          template_id?: string;
+          user_id?: string | null;
+          event_type?: "selected" | "downloaded";
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      templates: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          description: string | null;
+          category: string | null;
+          html: string;
+          css: string;
+          thumbnail_url: string | null;
+          version: number;
+          is_published: boolean;
+          sort_order: number;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          name: string;
+          description?: string | null;
+          category?: string | null;
+          html: string;
+          css?: string;
+          thumbnail_url?: string | null;
+          version?: number;
+          is_published?: boolean;
+          sort_order?: number;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          slug?: string;
+          name?: string;
+          description?: string | null;
+          category?: string | null;
+          html?: string;
+          css?: string;
+          thumbnail_url?: string | null;
+          version?: number;
+          is_published?: boolean;
+          sort_order?: number;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;
           full_name: string | null;
           email: string | null;
+          role: "user" | "admin";
           created_at: string;
           updated_at: string;
         };
@@ -51,6 +127,7 @@ export interface Database {
           id: string;
           full_name?: string | null;
           email?: string | null;
+          role?: "user" | "admin";
           created_at?: string;
           updated_at?: string;
         };
@@ -58,6 +135,7 @@ export interface Database {
           id?: string;
           full_name?: string | null;
           email?: string | null;
+          role?: "user" | "admin";
           created_at?: string;
           updated_at?: string;
         };
@@ -111,7 +189,10 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      is_admin: {
+        Args: Record<PropertyKey, never>;
+        Returns: boolean;
+      };
     };
     Enums: {
       [_ in never]: never;
@@ -126,6 +207,8 @@ export type Tables<T extends keyof Database["public"]["Tables"]> =
   Database["public"]["Tables"][T]["Row"];
 
 export type Profile = Tables<"profiles">;
+export type Template = Tables<"templates">;
+export type TemplateEvent = Tables<"template_events">;
 export type ResumeRow = Tables<"resumes">;
 
 export interface SignupFormValues {

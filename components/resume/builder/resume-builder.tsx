@@ -7,6 +7,7 @@ import { ResumeBuilderProvider } from "@/components/resume/builder/resume-builde
 import BuilderHeader from "@/components/resume/builder/builder-header";
 import SectionNav from "@/components/resume/builder/section-nav";
 import CompletenessBar from "@/components/resume/builder/completeness-bar";
+import GuestImportBanner from "@/components/resume/builder/guest-import-banner";
 import GuestNotice from "@/components/resume/builder/guest-notice";
 import ActiveSectionForm from "@/components/resume/builder/active-section-form";
 import ResumePreview from "@/components/resume/preview/resume-preview";
@@ -45,7 +46,9 @@ function ResumeBuilderShell() {
           )}
         </button>
 
-        <div className="grid gap-8 lg:grid-cols-[300px_1fr]">
+        <GuestImportBanner />
+
+        <div className="grid gap-8 lg:grid-cols-[460px_minmax(0,1fr)] xl:grid-cols-[520px_minmax(0,1fr)]">
           <div
             className={cn(
               "flex flex-col gap-6",

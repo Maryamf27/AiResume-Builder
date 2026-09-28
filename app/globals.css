@@ -33,3 +33,11 @@ body {
   background: var(--cream);
   color: var(--charcoal);
 }
+/* Tailwind v4 resets buttons to the default cursor; restore the pointer on enabled controls. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary {
+    cursor: pointer;
+  }
+}

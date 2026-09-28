@@ -41,7 +41,7 @@ export default function EducationForm() {
               />
             </FormField>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
               <FormField label="Degree" htmlFor={`edu-degree-${entry.id}`}>
                 <Input
                   id={`edu-degree-${entry.id}`}
@@ -60,7 +60,7 @@ export default function EducationForm() {
               </FormField>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
               <FormField label="Start date" htmlFor={`edu-start-${entry.id}`} optional>
                 <Input
                   id={`edu-start-${entry.id}`}

@@ -6,6 +6,7 @@ import { useState, FormEvent } from "react";
 import { Eye, EyeOff, FileText, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+import { hasGuestResumeToImport } from "@/lib/resume/guest-import";
 import { AUTH_ERRORS, isValidEmail } from "@/lib/auth/auth-utils";
 import { cn } from "@/lib/utils";
 
@@ -99,7 +100,8 @@ export default function SignupPage() {
         return;
       }
 
-      router.push("/dashboard");
+      // Take guests straight to the builder so their draft is moved into the account.
+      router.push(hasGuestResumeToImport() ? "/builder" : "/dashboard");
       router.refresh();
     } catch {
       setFormError(AUTH_ERRORS.UNEXPECTED);

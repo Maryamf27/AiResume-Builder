@@ -27,6 +27,8 @@ import { createEmptyResumeData, DEFAULT_RESUME_TITLE, RESUME_SCHEMA_VERSION } fr
 import { calculateCompleteness } from "@/lib/resume/completeness";
 import { createId } from "@/lib/resume/id";
 import { createClient } from "@/lib/supabase/client";
+import { hasResumeContent } from "@/lib/resume/guest-import";
+import { clearGuestResume, loadGuestResume } from "@/lib/resume/storage";
 import { createGuestPersistenceAdapter } from "@/lib/resume/persistence/guest-adapter";
 import { createSupabasePersistenceAdapter } from "@/lib/resume/persistence/supabase-adapter";
 import type { ResumePersistenceAdapter } from "@/lib/resume/persistence/types";
@@ -48,6 +50,14 @@ interface ResumeBuilderContextValue {
   retrySave: () => void;
   loadFailed: boolean;
   retryLoad: () => void;
+
+  /** A resume built as a guest on this device that hasn't been merged into the account yet. */
+  hasPendingGuestResume: boolean;
+  guestImportNotice: boolean;
+  guestImportError: string | null;
+  importGuestResume: () => Promise<void>;
+  discardGuestResume: () => void;
+  dismissGuestImportNotice: () => void;
 
   activeSection: ResumeSectionId;
   setActiveSection: (section: ResumeSectionId) => void;
@@ -108,6 +118,9 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [pendingGuest, setPendingGuest] = useState<ResumeRecord | null>(null);
+  const [guestImportNotice, setGuestImportNotice] = useState(false);
+  const [guestImportError, setGuestImportError] = useState<string | null>(null);
 
   const recordIdRef = useRef<string>(createId());
   const createdAtRef = useRef<string>(new Date().toISOString());
@@ -142,6 +155,43 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (runId !== bootstrapRunRef.current) return;
+
+    // Signed in: look for a resume built as a guest on this device.
+    let guest: ResumeRecord | null = null;
+    let importedFromGuest = false;
+    if (user) {
+      guest = loadGuestResume();
+      if (guest && !hasResumeContent(guest.data)) {
+        clearGuestResume();
+        guest = null;
+      }
+    }
+
+    if (user && guest) {
+      if (!stored) {
+        // The account has no resume yet: move the guest one in automatically.
+        const record: ResumeRecord = {
+          ...guest,
+          id: createId(),
+          userId: user.id,
+          updatedAt: new Date().toISOString(),
+        };
+        const result = await loadAdapter.save(record);
+        if (result.ok) {
+          clearGuestResume();
+          stored = record;
+          importedFromGuest = true;
+          guest = null;
+        }
+        // On failure the guest copy stays on the device and the banner offers a retry.
+      }
+      // If the account already has a resume, never overwrite it silently:
+      // `guest` stays pending and the banner asks the user what to do.
+      if (runId !== bootstrapRunRef.current) return;
+    }
+
+    setPendingGuest(guest);
+    setGuestImportNotice(importedFromGuest);
 
     if (stored) {
       setResumeData(stored.data);
@@ -216,6 +266,40 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
     const timeout = setTimeout(runSave, AUTOSAVE_DEBOUNCE_MS);
     return () => clearTimeout(timeout);
   }, [resumeData, title, hydrated]);
+
+  const importGuestResume = useCallback(async () => {
+    if (!pendingGuest || !userId) return;
+    setGuestImportError(null);
+
+    const record: ResumeRecord = {
+      ...pendingGuest,
+      id: recordIdRef.current,
+      userId,
+      createdAt: createdAtRef.current,
+      updatedAt: new Date().toISOString(),
+    };
+    const result = await createSupabasePersistenceAdapter(userId).save(record);
+    if (!result.ok) {
+      setGuestImportError(result.error);
+      return;
+    }
+
+    clearGuestResume();
+    setResumeData(record.data);
+    setTitle(record.title);
+    setPendingGuest(null);
+    setGuestImportNotice(true);
+  }, [pendingGuest, userId]);
+
+  const discardGuestResume = useCallback(() => {
+    clearGuestResume();
+    setPendingGuest(null);
+    setGuestImportError(null);
+  }, []);
+
+  const dismissGuestImportNotice = useCallback(() => {
+    setGuestImportNotice(false);
+  }, []);
 
   const retrySave = useCallback(() => {
     runSave();
@@ -432,6 +516,12 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
     retrySave,
     loadFailed,
     retryLoad,
+    hasPendingGuestResume: pendingGuest !== null,
+    guestImportNotice,
+    guestImportError,
+    importGuestResume,
+    discardGuestResume,
+    dismissGuestImportNotice,
     activeSection,
     setActiveSection,
     updatePersonal,

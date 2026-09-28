@@ -30,7 +30,7 @@ export default function CertificationsForm() {
             onRemove={() => removeCertification(entry.id)}
             removeLabel="Remove certification entry"
           >
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
               <FormField label="Certification name" htmlFor={`cert-name-${entry.id}`}>
                 <Input
                   id={`cert-name-${entry.id}`}
@@ -49,7 +49,7 @@ export default function CertificationsForm() {
               </FormField>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
               <FormField label="Issue date" htmlFor={`cert-issue-${entry.id}`} optional>
                 <Input
                   id={`cert-issue-${entry.id}`}

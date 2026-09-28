@@ -49,7 +49,7 @@ export default function ProjectsForm() {
               />
             </FormField>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
               <FormField label="Project URL" htmlFor={`proj-url-${entry.id}`} optional>
                 <Input
                   id={`proj-url-${entry.id}`}

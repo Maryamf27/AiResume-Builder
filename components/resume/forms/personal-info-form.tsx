@@ -17,7 +17,7 @@ export default function PersonalInfoForm() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(12rem,1fr))]">
         <FormField label="First name" htmlFor="pi-first-name">
           <Input
             id="pi-first-name"
@@ -47,7 +47,7 @@ export default function PersonalInfoForm() {
         />
       </FormField>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(12rem,1fr))]">
         <FormField label="Email" htmlFor="pi-email" optional>
           <Input
             id="pi-email"
@@ -80,7 +80,7 @@ export default function PersonalInfoForm() {
         />
       </FormField>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(12rem,1fr))]">
         <FormField label="Website" htmlFor="pi-website" optional>
           <Input
             id="pi-website"

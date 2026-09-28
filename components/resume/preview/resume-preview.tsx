@@ -32,7 +32,7 @@ export default function ResumePreview() {
   return (
     <div className="mx-auto w-full max-w-180">
       <div
-        className="aspect-[1/1.414] w-full overflow-y-auto rounded-sm border border-cream-dark bg-white p-8 shadow-sm sm:p-12"
+        className="aspect-[1/1.414] w-full rounded-sm border border-cream-dark bg-white p-8 shadow-sm sm:p-12"
         aria-label="Resume preview"
       >
         {!hasAnyContent ? (
