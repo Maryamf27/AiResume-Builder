@@ -96,7 +96,7 @@ export default function TemplatesPage() {
 
       <FinalCta
         title="The editor will use these layouts."
-        description="Create Resume is the path into the guest builder when it ships. Until then, this page is the public home for the template story."
+        description="Create Resume opens the guest builder now — these ten layouts are what your resume will move into as the template engine ships."
       />
     </main>
   );

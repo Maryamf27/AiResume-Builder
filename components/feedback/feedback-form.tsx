@@ -46,16 +46,22 @@ export default function FeedbackForm() {
     setErrorMessage("");
     try {
       const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       const { error } = await supabase.from("feedback").insert({
         type,
         message: trimmedMessage,
         page_url: pageUrl.trim() || window.location.href,
+        user_id: user?.id ?? null,
       } as never);
       if (error) throw error;
       setMessage("");
       setPageUrl("");
       setStatus("success");
-    } catch {
+    } catch (err) {
+      console.error("Feedback submission failed:", err);
       setStatus("error");
       setErrorMessage("We couldn't send that just now. Please check your connection and try again.");
     }

@@ -71,6 +71,41 @@ export interface Database {
           },
         ];
       };
+      resumes: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          data: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title?: string;
+          data: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string;
+          data?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "resumes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, unknown>;
     Functions: Record<string, unknown>;
@@ -83,6 +118,7 @@ export type Tables<T extends keyof Database["public"]["Tables"]> =
   Database["public"]["Tables"][T]["Row"];
 
 export type Profile = Tables<"profiles">;
+export type ResumeRow = Tables<"resumes">;
 
 export interface SignupFormValues {
   fullName: string;

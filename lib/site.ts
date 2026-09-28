@@ -1,15 +1,3 @@
-/**
- * Public site identity and URL helpers.
- *
- * Production URL resolution (in order):
- *  1. NEXT_PUBLIC_SITE_URL — set this to the canonical production origin
- *  2. VERCEL_PROJECT_PRODUCTION_URL — Vercel's production domain
- *  3. VERCEL_URL — current deployment host (preview or production)
- *
- * Localhost is used only when none of the above are present (local dev).
- * Do not treat localhost as the production metadata base.
- */
-
 export const SITE_NAME = "Resonance";
 
 export const SITE_TAGLINE = "Create a resume that represents your work.";
@@ -31,12 +19,13 @@ export const routes = {
   terms: "/terms",
   blog: "/blog",
   signIn: "/auth/login",
-  createResume: "/#create-resume",
+  createResume: "/builder",
   reportProblem: "/contact#report",
 } as const;
 
 export const publicIndexRoutes = [
   routes.home,
+  routes.createResume,
   routes.about,
   routes.features,
   routes.templates,
