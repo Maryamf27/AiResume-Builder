@@ -29,19 +29,30 @@ export default function Dialog({
 }: DialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Callers usually pass an inline onClose, which changes identity on every
+  // render. Keeping it in a ref means the effect below runs only when the
+  // dialog opens or closes. Otherwise it re-ran on each keystroke and its
+  // panel.focus() stole focus from any input inside the dialog.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", onKey);
-    panelRef.current?.focus();
+    // Focus the panel only if nothing inside it (e.g. an autoFocus input) already has focus.
+    const panel = panelRef.current;
+    if (panel && !panel.contains(document.activeElement)) panel.focus();
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

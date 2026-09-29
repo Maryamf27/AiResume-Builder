@@ -4,12 +4,12 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
-  FileText,
+  BarChart3,
   LayoutTemplate,
-  UserRound,
   LogOut,
   Menu,
+  ShieldCheck,
+  Users,
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -17,13 +17,18 @@ import { SITE_NAME } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/resumes", label: "My Resumes", icon: FileText },
-  { href: "/dashboard/templates", label: "Templates", icon: LayoutTemplate },
-  { href: "/dashboard/account", label: "Account", icon: UserRound },
+  { href: "/admin", label: "Overview", icon: BarChart3, exact: true },
+  { href: "/admin/users", label: "Users", icon: Users, exact: false },
+  { href: "/admin/templates", label: "Templates", icon: LayoutTemplate, exact: false },
 ] as const;
 
-export default function DashboardShell({ children }: { children: ReactNode }) {
+export default function AdminShell({
+  children,
+  adminEmail,
+}: {
+  children: ReactNode;
+  adminEmail: string | null;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -32,25 +37,25 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
   async function signOut() {
     if (signingOut) return;
     setSigningOut(true);
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await createClient().auth.signOut();
     router.push("/");
     router.refresh();
   }
 
   const nav = (
-    <nav className="flex flex-col gap-1" aria-label="Dashboard">
-      {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-        const active = pathname === href;
+    <nav className="flex flex-col gap-1" aria-label="Admin">
+      {NAV_ITEMS.map(({ href, label, icon: Icon, exact }) => {
+        const active = exact ? pathname === href : pathname.startsWith(href);
         return (
           <Link
-            key={label}
+            key={href}
             href={href}
             onClick={() => setMenuOpen(false)}
+            aria-current={active ? "page" : undefined}
             className={cn(
               "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
               active
-                ? "bg-cream-dark/70 text-charcoal"
+                ? "bg-olive text-cream"
                 : "text-charcoal/65 hover:bg-cream-dark/40 hover:text-charcoal"
             )}
           >
@@ -71,13 +76,20 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     </nav>
   );
 
+  const brand = (
+    <Link href="/admin" className="flex items-center gap-2">
+      <span className="font-serif text-lg text-charcoal">{SITE_NAME}</span>
+      <span className="inline-flex items-center gap-1 rounded-full bg-olive/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-olive">
+        <ShieldCheck className="h-3 w-3" aria-hidden="true" />
+        Admin
+      </span>
+    </Link>
+  );
+
   return (
     <div className="min-h-screen bg-cream">
-      {/* Mobile top bar */}
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-cream-dark/60 bg-cream-light px-5 lg:hidden">
-        <Link href="/dashboard" className="font-serif text-lg text-charcoal">
-          {SITE_NAME}
-        </Link>
+        {brand}
         <button
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
@@ -85,28 +97,23 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
           aria-expanded={menuOpen}
           className="rounded-md p-2 text-charcoal transition-colors hover:bg-cream-dark/50"
         >
-          {menuOpen ? (
-            <X className="h-5 w-5" aria-hidden="true" />
-          ) : (
-            <Menu className="h-5 w-5" aria-hidden="true" />
-          )}
+          {menuOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
         </button>
       </header>
 
-      {/* Mobile drawer */}
       {menuOpen && (
-        <div className="border-b border-cream-dark/60 bg-cream-light px-5 py-4 lg:hidden">
-          {nav}
-        </div>
+        <div className="border-b border-cream-dark/60 bg-cream-light px-5 py-4 lg:hidden">{nav}</div>
       )}
 
-      <div className="mx-auto flex w-full max-w-6xl">
-        {/* Desktop sidebar */}
-        <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-cream-dark/60 bg-cream-light px-4 py-6 lg:flex">
-          <Link href="/dashboard" className="mb-8 flex items-baseline gap-2 px-3">
-            <span className="font-serif text-lg text-charcoal">{SITE_NAME}</span>
-          </Link>
+      <div className="mx-auto flex w-full max-w-7xl">
+        <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-cream-dark/60 bg-cream-light px-4 py-6 lg:flex">
+          <div className="mb-8 px-3">{brand}</div>
           {nav}
+          {adminEmail && (
+            <p className="mt-auto truncate px-3 text-xs text-charcoal/50" title={adminEmail}>
+              Signed in as {adminEmail}
+            </p>
+          )}
         </aside>
 
         <main className="min-w-0 flex-1 px-5 py-8 sm:px-8 lg:py-10">{children}</main>

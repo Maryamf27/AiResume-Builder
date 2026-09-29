@@ -45,7 +45,7 @@ export default function DownloadButton() {
     <span className="flex flex-col items-end gap-1">
       <Button
         type="button"
-        variant="outline"
+        variant="outline-olive"
         size="sm"
         onClick={() => void handleDownload()}
         disabled={preparing}

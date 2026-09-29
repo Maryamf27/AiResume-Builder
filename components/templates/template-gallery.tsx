@@ -19,25 +19,55 @@ export interface GalleryTemplate {
   srcDoc: string;
 }
 
-function builderHref(slug: string) {
-  return `${routes.createResume}?template=${encodeURIComponent(slug)}`;
+function builderHref(slug: string, startNew: boolean) {
+  const params = new URLSearchParams();
+  // Signed-in users start a fresh draft instead of reopening their latest resume.
+  if (startNew) params.set("new", "1");
+  params.set("template", slug);
+  return `${routes.createResume}?${params.toString()}`;
 }
 
-function UseTemplateLink({ slug, name, size }: { slug: string; name: string; size?: "sm" | "md" }) {
+function UseTemplateLink({
+  slug,
+  name,
+  size,
+  startNew,
+}: {
+  slug: string;
+  name: string;
+  size?: "sm" | "md";
+  startNew: boolean;
+}) {
   return (
-    <ButtonLink href={builderHref(slug)} size={size} aria-label={`Use the ${name} template`}>
+    <ButtonLink href={builderHref(slug, startNew)} size={size} aria-label={`Use the ${name} template`}>
       Use Template
     </ButtonLink>
   );
 }
 
-export default function TemplateGallery({ templates }: { templates: GalleryTemplate[] }) {
+export default function TemplateGallery({
+  templates,
+  compact = false,
+  startNew = false,
+}: {
+  templates: GalleryTemplate[];
+  /** Open the builder with a new draft (signed-in dashboard) rather than the latest resume. */
+  startNew?: boolean;
+  /** Fewer columns, for use beside a sidebar where the content area is narrower. */
+  compact?: boolean;
+}) {
   const [previewId, setPreviewId] = useState<string | null>(null);
   const previewing = templates.find((t) => t.id === previewId) ?? null;
 
   return (
     <>
-      <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <ul
+        className={
+          compact
+            ? "grid gap-6 sm:grid-cols-2 xl:grid-cols-3"
+            : "grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+        }
+      >
         {templates.map((t) => (
           <li
             key={t.id}
@@ -73,7 +103,7 @@ export default function TemplateGallery({ templates }: { templates: GalleryTempl
                   <Eye className="h-4 w-4" aria-hidden="true" />
                   Preview
                 </Button>
-                <UseTemplateLink slug={t.slug} name={t.name} size="sm" />
+                <UseTemplateLink slug={t.slug} name={t.name} size="sm" startNew={startNew} />
               </div>
             </div>
           </li>
@@ -99,7 +129,7 @@ export default function TemplateGallery({ templates }: { templates: GalleryTempl
               <Button variant="ghost" onClick={() => setPreviewId(null)}>
                 Close
               </Button>
-              <UseTemplateLink slug={previewing.slug} name={previewing.name} />
+              <UseTemplateLink slug={previewing.slug} name={previewing.name} startNew={startNew} />
             </div>
           </>
         )}

@@ -58,7 +58,6 @@ export default function TemplateForm({
   const [html, setHtml] = useState(initial.html);
   const [css, setCss] = useState(initial.css);
 
-  // Keep typing snappy: the preview follows a beat behind the editor.
   const deferredHtml = useDeferredValue(html);
   const deferredCss = useDeferredValue(css);
 

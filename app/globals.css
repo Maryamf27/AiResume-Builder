@@ -41,3 +41,45 @@ body {
     cursor: pointer;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Themed scrollbars — cream track, olive thumb (turns darker on hover/drag).
+   Chrome/Edge/Safari use the ::-webkit-scrollbar pseudo-elements; Firefox (and
+   any browser without them) falls back to the standard scrollbar-color
+   properties. Chrome 121+ ignores ::-webkit-scrollbar when scrollbar-color is
+   set, so the standard properties are only applied where the pseudo-elements
+   are unsupported.
+   --------------------------------------------------------------------------- */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--cream-dark);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--olive);
+  border-radius: 999px;
+  /* Inset ring in the track colour gives the thumb a slim, floating look. */
+  border: 2px solid var(--cream-dark);
+}
+*::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:active {
+  background: var(--olive-dark);
+}
+/* Removes the classic square arrow buttons at each end of the bar. */
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--olive) var(--cream-dark);
+  }
+}

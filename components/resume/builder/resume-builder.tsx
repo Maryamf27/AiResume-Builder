@@ -15,12 +15,18 @@ import PreviewPane from "@/components/resume/builder/preview-pane";
 export default function ResumeBuilder({
   resumeId,
   initialTemplateSlug,
+  startNew,
 }: {
   resumeId?: string;
   initialTemplateSlug?: string;
+  startNew?: boolean;
 }) {
   return (
-    <ResumeBuilderProvider resumeId={resumeId} initialTemplateSlug={initialTemplateSlug}>
+    <ResumeBuilderProvider
+      resumeId={resumeId}
+      initialTemplateSlug={initialTemplateSlug}
+      startNew={startNew}
+    >
       <ResumeBuilderShell />
     </ResumeBuilderProvider>
   );

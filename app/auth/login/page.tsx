@@ -76,7 +76,17 @@ export default function LoginPage() {
       }
 
       // Take guests straight to the builder so their draft is moved into the account.
-      router.push(hasGuestResumeToImport() ? "/builder" : "/dashboard");
+      // Admins land in the Admin Panel; everyone else in their dashboard.
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .maybeSingle();
+      if (profile?.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push(hasGuestResumeToImport() ? "/builder" : "/dashboard");
+      }
       router.refresh();
     } catch {
       setFormError(AUTH_ERRORS.UNEXPECTED);

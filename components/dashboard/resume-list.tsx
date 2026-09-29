@@ -199,7 +199,7 @@ export default function ResumeList({
                 Edit
               </Link>
               <Button
-                variant="outline"
+                variant="outline-olive"
                 size="sm"
                 onClick={() => void handleDownload(resume)}
                 disabled={downloadingId !== null}
@@ -226,9 +226,9 @@ export default function ResumeList({
               >
                 Rename
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setDeleting(resume)}>
-                <Trash2 data-icon="inline-start" className="h-3.5 w-3.5 text-destructive" aria-hidden="true" />
-                <span className="text-destructive">Delete</span>
+              <Button variant="ghost-destructive" size="sm" onClick={() => setDeleting(resume)}>
+                <Trash2 data-icon="inline-start" className="h-3.5 w-3.5" aria-hidden="true" />
+                Delete
               </Button>
             </div>
           </li>

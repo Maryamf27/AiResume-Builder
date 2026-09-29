@@ -1,10 +1,3 @@
-/**
- * Shared auth error messages and validation helpers.
- *
- * DO NOT import Supabase clients here.
- * Use lib/supabase/client.ts (browser) or lib/supabase/server.ts (server).
- */
-
 export const AUTH_ERRORS = {
   USER_ALREADY_REGISTERED:
     "An account with this email already exists. Try signing in instead.",

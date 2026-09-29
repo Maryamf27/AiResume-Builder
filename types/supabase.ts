@@ -193,6 +193,55 @@ export interface Database {
         Args: Record<PropertyKey, never>;
         Returns: boolean;
       };
+      admin_summary: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          total_users: number;
+          new_users_7d: number;
+          total_resumes: number;
+          total_downloads: number;
+          total_selections: number;
+          guest_downloads: number;
+          published_templates: number;
+        }[];
+      };
+      admin_user_overview: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          id: string;
+          email: string | null;
+          full_name: string | null;
+          role: string;
+          created_at: string;
+          resume_count: number;
+          last_resume_update: string | null;
+          downloads: number;
+          selections: number;
+          last_activity: string | null;
+        }[];
+      };
+      admin_template_usage: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          template_id: string;
+          name: string;
+          slug: string;
+          is_published: boolean;
+          selected_count: number;
+          downloaded_count: number;
+          unique_users: number;
+          last_used: string | null;
+        }[];
+      };
+      admin_daily_activity: {
+        Args: { days?: number };
+        Returns: {
+          day: string;
+          downloads: number;
+          selections: number;
+          signups: number;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;

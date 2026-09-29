@@ -5,7 +5,9 @@ type ButtonVariant =
   | "primary"
   | "secondary"
   | "outline"
+  | "outline-olive"
   | "ghost"
+  | "ghost-destructive"
   | "destructive";
 
 type ButtonSize = "sm" | "md" | "lg";
@@ -30,7 +32,13 @@ const variants: Record<ButtonVariant, string> = {
   secondary: "bg-cream-light text-charcoal hover:bg-cream-dark",
   outline:
     "border border-charcoal/15 bg-transparent text-charcoal hover:bg-cream-light",
-  ghost: "bg-transparent text-charcoal hover:bg-cream-light",
+  // Outlined at rest, fills olive green on hover (used by Download buttons).
+  "outline-olive":
+    "border border-charcoal/15 bg-transparent text-charcoal hover:border-olive hover:bg-olive hover:text-cream",
+  // cream-light hover was invisible on cream-light cards; cream-dark shows on both.
+  ghost: "bg-transparent text-charcoal hover:bg-cream-dark/60",
+  "ghost-destructive":
+    "bg-transparent text-destructive hover:bg-destructive/10",
   destructive: "bg-destructive text-cream hover:bg-destructive/90",
 };
 

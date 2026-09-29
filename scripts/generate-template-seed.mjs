@@ -1,16 +1,3 @@
-#!/usr/bin/env node
-/**
- * Builds supabase/migrations/0005_launch_templates.sql from the template
- * sources in supabase/templates/ (catalog.json + <slug>.html + <slug>.css).
- *
- *   node scripts/generate-template-seed.mjs          write the migration
- *   node scripts/generate-template-seed.mjs --check  fail if it is out of date
- *
- * The database stays the source of truth at runtime; this only produces the
- * one-off seed. It has no dependencies. The checks below mirror
- * lib/templates/sanitize.ts and lib/templates/render.ts so a seeded template
- * can still be opened and re-saved in /admin/templates without being altered.
- */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

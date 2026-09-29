@@ -4,11 +4,6 @@ import { sanitizeResumeRecord } from "@/lib/resume/validation";
 import type { Json } from "@/types/supabase";
 import type { ResumeRecord } from "@/types/resume";
 
-/**
- * Persists one resume to Supabase. When `resumeId` is given, that specific
- * resume is loaded (the dashboard "Edit" flow); otherwise the most recently
- * updated one is used, preserving the original single-resume behavior.
- */
 export function createSupabasePersistenceAdapter(
   userId: string,
   resumeId?: string

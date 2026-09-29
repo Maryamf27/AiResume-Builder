@@ -1,8 +1,7 @@
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-
-export async function requireAdmin() {
+export async function getSessionWithRole() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -11,10 +10,14 @@ export async function requireAdmin() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, full_name")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profile?.role !== "admin") notFound();
-  return { supabase, user };
+  return {
+    supabase,
+    user,
+    isAdmin: profile?.role === "admin",
+    fullName: profile?.full_name ?? null,
+  };
 }

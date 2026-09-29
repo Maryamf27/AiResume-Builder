@@ -119,12 +119,19 @@ export function ResumeBuilderProvider({
   children,
   resumeId,
   initialTemplateSlug,
+  startNew = false,
 }: {
   children: ReactNode;
   /** When set (dashboard "Edit" flow), load this specific resume instead of the latest one. */
   resumeId?: string;
   /** Set by "Use template" on the public templates page (/builder?template=slug). */
   initialTemplateSlug?: string;
+  /**
+   * Start a brand-new draft instead of loading the latest resume ("Use template"
+   * from the dashboard). Nothing is written to the database until the user adds
+   * content.
+   */
+  startNew?: boolean;
 }) {
   const [resumeData, setResumeData] = useState<ResumeData>(createEmptyResumeData);
   const [title, setTitle] = useState<string>(DEFAULT_RESUME_TITLE);
@@ -147,6 +154,8 @@ export function ResumeBuilderProvider({
   const createdAtRef = useRef<string>(new Date().toISOString());
   const hasSyncedAfterLoadRef = useRef(false);
   const bootstrapRunRef = useRef(0);
+  // True once this resume exists in the database (loaded from it, or saved to it).
+  const persistedRef = useRef(false);
 
   const bootstrap = useCallback(async () => {
     const runId = ++bootstrapRunRef.current;
@@ -166,7 +175,9 @@ export function ResumeBuilderProvider({
 
     let stored: ResumeRecord | null;
     try {
-      stored = await loadAdapter.load();
+      // A new draft never loads an existing resume, or the chosen template
+      // would be applied to (and saved over) the user's latest one.
+      stored = user && startNew && !resumeId ? null : await loadAdapter.load();
     } catch (error) {
       if (runId !== bootstrapRunRef.current) return;
       console.error("Resume load failed:", error);
@@ -225,6 +236,7 @@ export function ResumeBuilderProvider({
     setGuestImportNotice(importedFromGuest);
 
     if (stored) {
+      persistedRef.current = user !== null;
       setResumeData(stored.data);
       setTitle(stored.title);
       recordIdRef.current = stored.id;
@@ -238,7 +250,7 @@ export function ResumeBuilderProvider({
     setUserId(user?.id ?? null);
     setLoadFailed(false);
     setHydrated(true);
-  }, [resumeId]);
+  }, [resumeId, startNew]);
 
   useEffect(() => {
     // Defer so the async bootstrap (and its setState calls) stays out of the
@@ -306,6 +318,7 @@ export function ResumeBuilderProvider({
     setSaveError(null);
     adapter.save(buildRecord()).then((result) => {
       if (result.ok) {
+        if (adapter.mode === "authenticated") persistedRef.current = true;
         setSaveStatus("saved");
       } else {
         console.error("Resume save failed:", result.error);
@@ -321,11 +334,24 @@ export function ResumeBuilderProvider({
       return;
     }
 
+    // Don't create an account resume until there is something in it. Opening
+    // the builder (or picking a template) and leaving must not leave an empty
+    // "My Resume" behind. Guests only write to this device, so they're unaffected.
+    if (
+      persistenceMode === "authenticated" &&
+      !persistedRef.current &&
+      !hasResumeContent(resumeData) &&
+      title.trim() === DEFAULT_RESUME_TITLE
+    ) {
+      setSaveStatus("idle");
+      return;
+    }
+
     setSaveStatus("saving");
     setSaveError(null);
     const timeout = setTimeout(runSave, AUTOSAVE_DEBOUNCE_MS);
     return () => clearTimeout(timeout);
-  }, [resumeData, title, hydrated]);
+  }, [resumeData, title, hydrated, persistenceMode]);
 
   const importGuestResume = useCallback(async () => {
     if (!pendingGuest || !userId) return;
@@ -344,6 +370,7 @@ export function ResumeBuilderProvider({
       return;
     }
 
+    persistedRef.current = true;
     clearGuestResume();
     setResumeData(record.data);
     setTitle(record.title);

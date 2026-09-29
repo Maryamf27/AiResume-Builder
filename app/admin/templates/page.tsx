@@ -9,6 +9,9 @@ export const metadata: Metadata = { title: "Templates · Admin" };
 
 export default async function AdminTemplatesPage() {
   const { supabase } = await requireAdmin();
+  const { data: usageRows } = await supabase.rpc("admin_template_usage");
+  const usage = new Map((usageRows ?? []).map((u) => [u.template_id, u]));
+
   const { data: templates, error } = await supabase
     .from("templates")
     .select("id, name, slug, category, is_published, sort_order, updated_at")
@@ -19,7 +22,7 @@ export default async function AdminTemplatesPage() {
     <div>
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="font-serif text-3xl text-charcoal">Templates</h1>
+          <h1 className="font-serif text-2xl text-charcoal sm:text-3xl">Templates</h1>
           <p className="mt-1 text-sm text-charcoal/65">
             {templates?.length ?? 0} total · {templates?.filter((t) => t.is_published).length ?? 0} published.
             Users only see published templates.
@@ -49,6 +52,8 @@ export default async function AdminTemplatesPage() {
                 <th className="px-4 py-3 font-medium">Order</th>
                 <th className="px-4 py-3 font-medium">Category</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 text-right font-medium">Selected</th>
+                <th className="px-4 py-3 text-right font-medium">Downloads</th>
                 <th className="px-4 py-3 font-medium">Updated</th>
                 <th className="px-4 py-3 text-right font-medium">Actions</th>
               </tr>
@@ -73,6 +78,12 @@ export default async function AdminTemplatesPage() {
                       {t.is_published ? "Published" : "Draft"}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-right tabular-nums text-charcoal/80">
+                    {usage.get(t.id)?.selected_count ?? 0}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums text-charcoal/80">
+                    {usage.get(t.id)?.downloaded_count ?? 0}
+                  </td>
                   <td className="px-4 py-3 text-charcoal/60">
                     {new Date(t.updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                   </td>
@@ -90,7 +101,7 @@ export default async function AdminTemplatesPage() {
                       </form>
                       <form action={deleteTemplateAction}>
                         <input type="hidden" name="id" value={t.id} />
-                        <Button type="submit" size="sm" variant="ghost" className="text-destructive">
+                        <Button type="submit" size="sm" variant="ghost-destructive">
                           Delete
                         </Button>
                       </form>
