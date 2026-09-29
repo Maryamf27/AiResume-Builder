@@ -114,7 +114,7 @@ function removeEntry<T extends { id: string }>(items: T[], id: string): T[] {
   return items.filter((item) => item.id !== id);
 }
 
-export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
+export function ResumeBuilderProvider({ children, resumeId }: { children: ReactNode; resumeId?: string }) {
   const [resumeData, setResumeData] = useState<ResumeData>(createEmptyResumeData);
   const [title, setTitle] = useState<string>(DEFAULT_RESUME_TITLE);
   const [activeSection, setActiveSection] = useState<ResumeSectionId>("personal");
@@ -150,7 +150,7 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
     }
 
     const loadAdapter: ResumePersistenceAdapter = user
-      ? createSupabasePersistenceAdapter(user.id)
+      ? createSupabasePersistenceAdapter(user.id, resumeId)
       : createGuestPersistenceAdapter();
 
     let stored: ResumeRecord | null;
@@ -217,7 +217,7 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
     setUserId(user?.id ?? null);
     setLoadFailed(false);
     setHydrated(true);
-  }, []);
+  }, [resumeId]);
 
   useEffect(() => {
     void bootstrap();
@@ -259,10 +259,10 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
 
   const adapter = useMemo<ResumePersistenceAdapter>(() => {
     if (persistenceMode === "authenticated" && userId) {
-      return createSupabasePersistenceAdapter(userId);
+      return createSupabasePersistenceAdapter(userId, resumeId);
     }
     return createGuestPersistenceAdapter();
-  }, [persistenceMode, userId]);
+  }, [persistenceMode, userId, resumeId]);
 
   const buildRecord = useCallback(
     (): ResumeRecord => ({
@@ -277,10 +277,13 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
     [userId, title, resumeData]
   );
 
+  const saveRunRef = useRef(0);
   const runSave = useCallback(() => {
+    const saveRun = ++saveRunRef.current;
     setSaveStatus("saving");
     setSaveError(null);
     adapter.save(buildRecord()).then((result) => {
+      if (saveRun !== saveRunRef.current) return;
       if (result.ok) {
         setSaveStatus("saved");
       } else {

@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { AlertCircle, CheckCircle2, Download, Loader2 } from "lucide-react";
+import { useResumePdf } from "@/components/resume/builder/use-resume-pdf";
 import Button from "@/components/ui/button";
 import { routes, SITE_NAME } from "@/lib/site";
 import { useResumeBuilder, type PersistenceMode, type SaveStatus } from "@/components/resume/builder/resume-builder-context";
 
 export default function BuilderHeader() {
-  const { saveStatus, saveError, persistenceMode, retrySave, loadFailed, retryLoad } =
+  const { saveStatus, saveError, persistenceMode, retrySave, loadFailed, retryLoad, title, updateTitle } =
     useResumeBuilder();
+
+  const { downloadPdf, isDownloading } = useResumePdf();
 
   return (
     <header className="border-b border-cream-dark/60 bg-cream-light">
@@ -17,6 +20,10 @@ export default function BuilderHeader() {
           <span className="font-serif text-lg text-charcoal">{SITE_NAME}</span>
           <span className="hidden text-sm text-charcoal/50 sm:inline">Resume Builder</span>
         </Link>
+
+        <div className="flex min-w-0 flex-1 items-center gap-3 px-4">
+          <input aria-label="Resume title" value={title} onChange={(event) => updateTitle(event.target.value)} className="min-w-0 flex-1 bg-transparent font-medium text-charcoal outline-none placeholder:text-charcoal/40" placeholder="My Resume" />
+        </div>
 
         <div className="flex items-center gap-4">
           {loadFailed ? (
@@ -43,11 +50,11 @@ export default function BuilderHeader() {
             type="button"
             variant="outline"
             size="sm"
-            disabled
-            title="Download will be available once templates ship"
+            onClick={() => void downloadPdf()}
+            disabled={isDownloading}
           >
-            <Download data-icon="inline-start" className="h-4 w-4" aria-hidden="true" />
-            Download
+            {isDownloading ? <Loader2 data-icon="inline-start" className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Download data-icon="inline-start" className="h-4 w-4" aria-hidden="true" />}
+            {isDownloading ? "Preparing PDF…" : "Download"}
           </Button>
         </div>
       </div>

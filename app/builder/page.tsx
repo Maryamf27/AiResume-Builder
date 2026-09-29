@@ -9,6 +9,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/builder",
 });
 
-export default function BuilderPage() {
-  return <ResumeBuilder />;
+export default async function BuilderPage({ searchParams }: { searchParams: Promise<{ resume?: string }> }) {
+  const params = await searchParams;
+  return <ResumeBuilder resumeId={params.resume} />;
 }

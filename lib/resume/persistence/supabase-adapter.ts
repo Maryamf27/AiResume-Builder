@@ -4,16 +4,18 @@ import { sanitizeResumeRecord } from "@/lib/resume/validation";
 import type { Json } from "@/types/supabase";
 import type { ResumeRecord } from "@/types/resume";
 
-export function createSupabasePersistenceAdapter(userId: string): ResumePersistenceAdapter {
+export function createSupabasePersistenceAdapter(userId: string, resumeId?: string): ResumePersistenceAdapter {
   return {
     mode: "authenticated",
 
     async load() {
       const supabase = createClient();
-      const { data, error } = await supabase
+      let query = supabase
         .from("resumes")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", userId);
+      if (resumeId) query = query.eq("id", resumeId);
+      const { data, error } = await query
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
