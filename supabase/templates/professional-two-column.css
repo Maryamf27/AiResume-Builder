@@ -1,0 +1,46 @@
+@page { size: A4; margin: 14mm 0; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: "Segoe UI", Calibri, Carlito, "Helvetica Neue", Arial, "Liberation Sans", sans-serif; color: #202b27; font-size: 13px; line-height: 1.5; }
+@media print { body { min-height: 0; } }
+.page { padding: 0 44px; }
+@media screen { .page { padding-top: 48px; padding-bottom: 48px; } }
+
+header { padding-bottom: 16px; border-bottom: 3px solid #2e5a4c; }
+h1 { margin: 0; font-size: 34px; line-height: 1.12; font-weight: 700; letter-spacing: -0.01em; color: #1d3f34; overflow-wrap: anywhere; }
+.role { margin: 6px 0 0; font-size: 16px; color: #4c5f58; }
+a { color: inherit; text-decoration: none; }
+
+.cols { margin-top: 20px; }
+.cols::after { content: ""; display: block; clear: both; }
+.side { float: left; width: 208px; padding-right: 22px; }
+.main { margin-left: 208px; padding-left: 26px; border-left: 1px solid #cfd9d5; min-height: 300px; }
+.cols:not(:has(.side .sec)) .main { margin-left: 0; padding-left: 0; border-left: 0; }
+.cols:not(:has(.side .sec)) .side { display: none; }
+
+.sec { margin-bottom: 20px; }
+.side .sec { margin-bottom: 18px; }
+h2 { margin: 0 0 8px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #2e5a4c; break-after: avoid; }
+p { margin: 0; overflow-wrap: anywhere; }
+
+.entry { margin-bottom: 13px; break-inside: avoid; }
+.entry:last-child { margin-bottom: 0; }
+h3 { margin: 0; font-size: 14px; font-weight: 700; color: #1d3f34; overflow-wrap: anywhere; break-after: avoid; }
+.side h3 { font-size: 12.5px; line-height: 1.35; }
+.sub { color: #3d4d47; overflow-wrap: anywhere; }
+.sub:empty { display: none; }
+.side .sub { font-size: 12px; }
+.main .sub { display: flex; flex-wrap: wrap; gap: 0 14px; align-items: baseline; }
+.co { font-weight: 600; color: #2e5a4c; }
+.loc { color: #5b6b65; }
+.dates { font-size: 12px; color: #5b6b65; overflow-wrap: anywhere; }
+.main .dates { margin-left: auto; white-space: nowrap; }
+.side .dates { margin-top: 1px; }
+.fos::before { content: ", "; }
+.deg:empty + .fos::before { content: ""; }
+ul { margin: 5px 0 0; padding-left: 18px; }
+ul:empty { display: none; }
+li { margin: 2px 0; overflow-wrap: anywhere; }
+li::marker { color: #2e5a4c; }
+ul.plain { list-style: none; margin: 0; padding: 0; font-size: 12.5px; }
+ul.plain li { margin: 3px 0; }
+.prof { display: block; font-size: 11.5px; color: #5b6b65; }

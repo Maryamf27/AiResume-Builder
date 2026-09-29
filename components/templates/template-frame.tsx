@@ -13,10 +13,13 @@ export default function TemplateFrame({
   srcDoc,
   title = "Resume template preview",
   className,
+  lazy = false,
 }: {
   srcDoc: string;
   title?: string;
   className?: string;
+  /** Defer loading until the frame is near the viewport (for long lists of previews). */
+  lazy?: boolean;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
@@ -50,6 +53,7 @@ export default function TemplateFrame({
         title={title}
         srcDoc={srcDoc}
         sandbox="allow-same-origin"
+        loading={lazy ? "lazy" : undefined}
         onLoad={measure}
         scrolling="no"
         style={{

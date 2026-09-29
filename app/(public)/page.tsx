@@ -230,13 +230,13 @@ export default function HomePage() {
                 Professional designs, ready to choose from.
               </h2>
               <p className="mt-4 text-base leading-7 text-charcoal/70">
-                A library of considered layouts is being prepared. When the
-                editor opens, you will pick a design and switch it later without
-                starting over.
+                Ten considered layouts, from a traditional classic to a plain
+                ATS-friendly page. Pick one in the editor and switch it later
+                without starting over.
               </p>
               <div className="mt-8">
                 <ButtonLink href={routes.templates} variant="outline" size="md">
-                  Browse template previews
+                  Browse templates
                 </ButtonLink>
               </div>
             </div>

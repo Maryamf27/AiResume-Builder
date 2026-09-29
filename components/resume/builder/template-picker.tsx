@@ -23,7 +23,7 @@ function Thumbnail({ template }: { template: PublishedTemplate }) {
   return (
     // The iframe would swallow clicks; the button around it must receive them.
     <div className="pointer-events-none">
-      <TemplateFrame srcDoc={doc} title={`${template.name} thumbnail`} className="border-0 shadow-none" />
+      <TemplateFrame srcDoc={doc} title={`${template.name} thumbnail`} className="border-0 shadow-none" lazy />
     </div>
   );
 }

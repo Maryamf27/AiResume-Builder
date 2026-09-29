@@ -1,0 +1,88 @@
+<div class="page">
+  <header>
+    <h1>{{fullName}}</h1>
+    {{#title}}<p class="role">{{title}}</p>{{/title}}
+    {{#hasContacts}}
+    <ul class="contacts">
+      {{#contacts}}<li>{{#href}}<a href="{{href}}">{{value}}</a>{{/href}}{{^href}}{{value}}{{/href}}</li>{{/contacts}}
+    </ul>
+    {{/hasContacts}}
+  </header>
+
+  {{#hasSummary}}
+  <section class="sec">
+    <h2>About</h2>
+    <div class="body"><p>{{summary}}</p></div>
+  </section>
+  {{/hasSummary}}
+
+  {{#hasExperience}}
+  <section class="sec">
+    <h2>Experience</h2>
+    <div class="body">
+    {{#experience}}
+    <div class="entry">
+      <div class="row"><h3>{{jobTitle}}</h3><span class="dates">{{dateRange}}</span></div>
+      <div class="sub"><span class="co">{{company}}</span>{{#location}}<span class="loc">{{location}}</span>{{/location}}</div>
+      {{#description}}<ul>{{#descriptionLines}}<li>{{text}}</li>{{/descriptionLines}}</ul>{{/description}}
+    </div>
+    {{/experience}}
+    </div>
+  </section>
+  {{/hasExperience}}
+
+  {{#hasEducation}}
+  <section class="sec">
+    <h2>Education</h2>
+    <div class="body">
+    {{#education}}
+    <div class="entry">
+      <div class="row"><h3><span class="deg">{{degree}}</span>{{#fieldOfStudy}}<span class="fos">{{fieldOfStudy}}</span>{{/fieldOfStudy}}</h3><span class="dates">{{dateRange}}</span></div>
+      <div class="sub">{{institution}}</div>
+      {{#description}}<ul>{{#descriptionLines}}<li>{{text}}</li>{{/descriptionLines}}</ul>{{/description}}
+    </div>
+    {{/education}}
+    </div>
+  </section>
+  {{/hasEducation}}
+
+  {{#hasProjects}}
+  <section class="sec">
+    <h2>Projects</h2>
+    <div class="body">
+    {{#projects}}
+    <div class="entry">
+      <div class="row"><h3>{{name}}</h3>{{#href}}<a class="url" href="{{href}}">{{url}}</a>{{/href}}</div>
+      {{#technologies}}<div class="sub">{{technologies}}</div>{{/technologies}}
+      {{#description}}<ul>{{#descriptionLines}}<li>{{text}}</li>{{/descriptionLines}}</ul>{{/description}}
+    </div>
+    {{/projects}}
+    </div>
+  </section>
+  {{/hasProjects}}
+
+  {{#hasSkills}}
+  <section class="sec">
+    <h2>Skills</h2>
+    <div class="body"><p>{{skillsList}}</p></div>
+  </section>
+  {{/hasSkills}}
+
+  {{#hasCertifications}}
+  <section class="sec">
+    <h2>Certifications</h2>
+    <div class="body">
+    {{#certifications}}
+    <div class="row cert"><span>{{name}}{{#organization}}<span class="org">{{organization}}</span>{{/organization}}</span><span class="dates">{{issueDate}}</span></div>
+    {{/certifications}}
+    </div>
+  </section>
+  {{/hasCertifications}}
+
+  {{#hasLanguages}}
+  <section class="sec">
+    <h2>Languages</h2>
+    <div class="body"><p>{{#languages}}<span class="lang">{{language}}{{#proficiency}} ({{proficiency}}){{/proficiency}}</span>{{/languages}}</p></div>
+  </section>
+  {{/hasLanguages}}
+</div>

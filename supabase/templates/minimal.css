@@ -1,0 +1,39 @@
+@page { size: A4; margin: 16mm 0; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif; color: #222; font-size: 13px; line-height: 1.6; }
+@media print { body { min-height: 0; } }
+.page { padding: 0 60px; }
+@media screen { .page { padding-top: 60px; padding-bottom: 60px; } }
+
+header { margin-bottom: 8px; }
+h1 { margin: 0; font-size: 40px; line-height: 1.1; font-weight: 300; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.role { margin: 8px 0 0; font-size: 15px; color: #777; }
+.contacts { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2px 22px; font-size: 12px; color: #666; }
+.contacts li { overflow-wrap: anywhere; }
+a { color: inherit; text-decoration: none; }
+
+.sec { display: flex; align-items: flex-start; margin-top: 30px; }
+h2 { flex: none; width: 138px; margin: 3px 0 0; padding-right: 12px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: #8c8c8c; }
+.body { flex: 1; min-width: 0; }
+p { margin: 0; overflow-wrap: anywhere; }
+.lang { margin-right: 18px; }
+
+.entry { margin-bottom: 16px; break-inside: avoid; }
+.entry:last-child { margin-bottom: 0; }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+h3 { margin: 0; min-width: 0; font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; break-after: avoid; }
+.dates { flex: none; font-size: 11.5px; color: #8c8c8c; white-space: nowrap; }
+.url { flex: none; max-width: 55%; font-size: 11.5px; color: #8c8c8c; overflow-wrap: anywhere; }
+.sub { color: #555; overflow-wrap: anywhere; }
+.sub:empty { display: none; }
+.loc::before { content: " · "; }
+.co:empty + .loc::before { content: ""; }
+.fos::before { content: ", "; }
+.deg:empty + .fos::before { content: ""; }
+.entry ul { margin: 6px 0 0; padding: 0; list-style: none; }
+.entry ul:empty { display: none; }
+.entry li { margin: 3px 0; padding-left: 14px; position: relative; overflow-wrap: anywhere; color: #333; }
+.entry li::before { content: "–"; position: absolute; left: 0; color: #aaa; }
+.cert { margin-bottom: 5px; }
+.org::before { content: " · "; }
+.org { color: #777; }

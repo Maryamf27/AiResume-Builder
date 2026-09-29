@@ -17,7 +17,7 @@ export const faqItems: FaqItem[] = [
   {
     question: "Can I change my resume template?",
     answer:
-      "Template switching is part of the editor we are building: your content stays in place while you try a different layout. The template library itself is still being prepared and will be managed from the product, not locked into a single design.",
+      "Yes. Pick a template in the editor and switch to another at any time: your content stays in place while the layout changes. Templates are managed from the product rather than fixed in the app.",
   },
   {
     question: "Can I download my resume?",

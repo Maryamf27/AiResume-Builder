@@ -1,0 +1,94 @@
+<div class="page">
+  <header>
+    <h1>{{fullName}}</h1>
+    {{#title}}<p class="role">{{title}}</p>{{/title}}
+  </header>
+
+  <div class="cols">
+    <aside class="side">
+      {{#hasContacts}}
+      <section class="sec">
+        <h2>Contact</h2>
+        <ul class="plain">
+          {{#contacts}}<li>{{#href}}<a href="{{href}}">{{value}}</a>{{/href}}{{^href}}{{value}}{{/href}}</li>{{/contacts}}
+        </ul>
+      </section>
+      {{/hasContacts}}
+
+      {{#hasSkills}}
+      <section class="sec">
+        <h2>Skills</h2>
+        <ul class="plain">{{#skills}}<li>{{name}}</li>{{/skills}}</ul>
+      </section>
+      {{/hasSkills}}
+
+      {{#hasEducation}}
+      <section class="sec">
+        <h2>Education</h2>
+        {{#education}}
+        <div class="entry">
+          <h3><span class="deg">{{degree}}</span>{{#fieldOfStudy}}<span class="fos">{{fieldOfStudy}}</span>{{/fieldOfStudy}}</h3>
+          <div class="sub">{{institution}}</div>
+          <div class="dates">{{dateRange}}</div>
+        </div>
+        {{/education}}
+      </section>
+      {{/hasEducation}}
+
+      {{#hasCertifications}}
+      <section class="sec">
+        <h2>Certifications</h2>
+        {{#certifications}}
+        <div class="entry">
+          <h3>{{name}}</h3>
+          {{#organization}}<div class="sub">{{organization}}</div>{{/organization}}
+          <div class="dates">{{issueDate}}</div>
+        </div>
+        {{/certifications}}
+      </section>
+      {{/hasCertifications}}
+
+      {{#hasLanguages}}
+      <section class="sec">
+        <h2>Languages</h2>
+        <ul class="plain">{{#languages}}<li>{{language}}{{#proficiency}}<span class="prof">{{proficiency}}</span>{{/proficiency}}</li>{{/languages}}</ul>
+      </section>
+      {{/hasLanguages}}
+    </aside>
+
+    <main class="main">
+      {{#hasSummary}}
+      <section class="sec">
+        <h2>Profile</h2>
+        <p>{{summary}}</p>
+      </section>
+      {{/hasSummary}}
+
+      {{#hasExperience}}
+      <section class="sec">
+        <h2>Experience</h2>
+        {{#experience}}
+        <div class="entry">
+          <h3>{{jobTitle}}</h3>
+          <div class="sub"><span class="co">{{company}}</span>{{#location}}<span class="loc">{{location}}</span>{{/location}}<span class="dates">{{dateRange}}</span></div>
+          {{#description}}<ul>{{#descriptionLines}}<li>{{text}}</li>{{/descriptionLines}}</ul>{{/description}}
+        </div>
+        {{/experience}}
+      </section>
+      {{/hasExperience}}
+
+      {{#hasProjects}}
+      <section class="sec">
+        <h2>Projects</h2>
+        {{#projects}}
+        <div class="entry">
+          <h3>{{name}}</h3>
+          <div class="sub"><span class="co">{{technologies}}</span>{{#href}}<a class="dates" href="{{href}}">{{url}}</a>{{/href}}</div>
+          {{#description}}<ul>{{#descriptionLines}}<li>{{text}}</li>{{/descriptionLines}}</ul>{{/description}}
+        </div>
+        {{/projects}}
+      </section>
+      {{/hasProjects}}
+    </main>
+  </div>
+</div>

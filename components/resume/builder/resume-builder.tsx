@@ -12,9 +12,15 @@ import GuestNotice from "@/components/resume/builder/guest-notice";
 import ActiveSectionForm from "@/components/resume/builder/active-section-form";
 import PreviewPane from "@/components/resume/builder/preview-pane";
 
-export default function ResumeBuilder({ resumeId }: { resumeId?: string }) {
+export default function ResumeBuilder({
+  resumeId,
+  initialTemplateSlug,
+}: {
+  resumeId?: string;
+  initialTemplateSlug?: string;
+}) {
   return (
-    <ResumeBuilderProvider resumeId={resumeId}>
+    <ResumeBuilderProvider resumeId={resumeId} initialTemplateSlug={initialTemplateSlug}>
       <ResumeBuilderShell />
     </ResumeBuilderProvider>
   );

@@ -1,0 +1,22 @@
+[
+  { "id": "7e3a9c10-2b5d-4f6a-9d01-000000000001", "slug": "classic", "name": "Classic", "category": "Traditional", "sort_order": 10,
+    "description": "A traditional, centred layout in a conservative serif. Clear hierarchy that suits almost any profession." },
+  { "id": "7e3a9c10-2b5d-4f6a-9d01-000000000002", "slug": "modern", "name": "Modern", "category": "Modern", "sort_order": 20,
+    "description": "A clean, contemporary sans-serif page with a teal accent, timeline-style experience and skill tags." },
+  { "id": "7e3a9c10-2b5d-4f6a-9d01-000000000003", "slug": "minimal", "name": "Minimal", "category": "Minimal", "sort_order": 30,
+    "description": "Generous whitespace and quiet section labels in the margin. No rules, no decoration, the writing leads." },
+  { "id": "7e3a9c10-2b5d-4f6a-9d01-000000000004", "slug": "executive", "name": "Executive", "category": "Professional", "sort_order": 40,
+    "description": "A formal navy header with gold detailing, an executive profile and a core competencies grid for senior roles." },
+  { "id": "7e3a9c10-2b5d-4f6a-9d01-000000000005", "slug": "creative", "name": "Creative", "category": "Creative", "sort_order": 50,
+    "description": "An expressive split-weight name, terracotta accent and label tabs. Distinctive, yet plain text throughout." },
+  { "id": "7e3a9c10-2b5d-4f6a-9d01-000000000006", "slug": "academic", "name": "Academic", "category": "Academic", "sort_order": 60,
+    "description": "A CV-style layout that leads with education, for students, graduates, researchers and academic profiles." },
+  { "id": "7e3a9c10-2b5d-4f6a-9d01-000000000007", "slug": "compact", "name": "Compact", "category": "Compact", "sort_order": 70,
+    "description": "A dense, efficient layout with one-line entries that fits substantial experience on fewer pages." },
+  { "id": "7e3a9c10-2b5d-4f6a-9d01-000000000008", "slug": "elegant", "name": "Elegant", "category": "Elegant", "sort_order": 80,
+    "description": "Refined serif typography, small caps and subtle hairline details, with a centred, balanced composition." },
+  { "id": "7e3a9c10-2b5d-4f6a-9d01-000000000009", "slug": "professional-two-column", "name": "Professional Two-Column", "category": "Two-column", "sort_order": 90,
+    "description": "A sidebar for contact details, skills, education and languages, beside a main column for experience." },
+  { "id": "7e3a9c10-2b5d-4f6a-9d01-000000000010", "slug": "simple-ats", "name": "Simple ATS", "category": "ATS-friendly", "sort_order": 100,
+    "description": "Plain single-column text with standard headings and no decoration, built to parse cleanly in applicant tracking systems." }
+]

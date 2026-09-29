@@ -40,8 +40,8 @@ const features: Feature[] = [
   },
   {
     title: "Professional templates",
-    body: "Layouts chosen for readability and hierarchy. The catalogue will be managed in the product rather than frozen as a handful of one-off files.",
-    status: "Library in preparation",
+    body: "Ten layouts chosen for readability and hierarchy, from classic to ATS-friendly. The catalogue is managed in the product rather than frozen in the app.",
+    status: "Available now",
     Icon: LayoutTemplate,
   },
   {
@@ -64,8 +64,8 @@ const features: Feature[] = [
   },
   {
     title: "Template switching",
-    body: "Try another layout on the same content. Switching depends on the template system still being prepared.",
-    status: "Planned with templates",
+    body: "Try another layout on the same content. Your details stay in place while the design changes.",
+    status: "Available now",
     Icon: RefreshCcw,
   },
   {

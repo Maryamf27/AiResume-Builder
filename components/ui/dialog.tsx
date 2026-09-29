@@ -62,7 +62,9 @@ export default function Dialog({
         ref={panelRef}
         tabIndex={-1}
         className={cn(
-          "relative w-full max-w-md rounded-lg border border-cream-dark bg-cream-light p-6 shadow-lg outline-none",
+          "relative w-full rounded-lg border border-cream-dark bg-cream-light p-6 shadow-lg outline-none",
+          // Default width, unless the caller sets its own max-w-* (there is no class merging).
+          !className?.includes("max-w-") && "max-w-md",
           className
         )}
       >

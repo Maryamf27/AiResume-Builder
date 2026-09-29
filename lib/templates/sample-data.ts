@@ -1,80 +1,130 @@
 import type { ResumeData } from "@/types/resume";
 
-/** Realistic dummy content for previewing templates in the admin editor. */
+/**
+ * Realistic but clearly fictional content used to preview templates
+ * (admin editor, builder thumbnails, public catalogue). No real person.
+ */
 export const sampleResume: ResumeData = {
   personal: {
-    firstName: "Amara",
-    lastName: "Okafor",
-    title: "Product Designer",
-    email: "amara@example.com",
-    phone: "+1 555 0142",
-    location: "Lagos, Nigeria",
-    website: "amara.design",
-    linkedin: "linkedin.com/in/amaraokafor",
-    github: "",
+    firstName: "Alex",
+    lastName: "Morgan",
+    title: "Software Engineer",
+    email: "email@example.com",
+    phone: "+1 000 000 0000",
+    location: "Austin, TX",
+    website: "alexmorgan.example.com",
+    linkedin: "linkedin.com/in/alexmorgan",
+    github: "github.com/alexmorgan",
   },
   summary:
-    "Product designer with six years of experience shipping accessible, data-heavy interfaces for fintech and logistics teams. Comfortable owning a problem from research through to production.",
+    "Software engineer with seven years of experience building reliable web platforms and internal tools. Comfortable across the stack, with a focus on performance, clear APIs and mentoring. Enjoys turning ambiguous problems into well-scoped, shipped work.",
   experience: [
     {
       id: "e1",
-      jobTitle: "Senior Product Designer",
-      company: "Northwind Labs",
-      location: "Remote",
+      jobTitle: "Senior Software Engineer",
+      company: "Northwind Systems",
+      location: "Austin, TX",
       startDate: "2022-03",
       endDate: "",
       current: true,
       description:
-        "Led the redesign of the onboarding flow, lifting completion from 54% to 71%.\nBuilt and documented a shared component library used by four squads.\nMentored two junior designers.",
+        "Led a team of four rebuilding the customer billing platform, cutting invoice errors by 38%.\nReduced p95 API latency from 480 ms to 190 ms by redesigning caching and query patterns.\nIntroduced code review guidelines and a mentoring programme for six junior engineers.",
     },
     {
       id: "e2",
-      jobTitle: "Product Designer",
-      company: "Paystream",
-      location: "Lagos, Nigeria",
+      jobTitle: "Software Engineer",
+      company: "Brightpath Labs",
+      location: "Remote",
       startDate: "2019-06",
       endDate: "2022-02",
       current: false,
       description:
-        "Designed the merchant dashboard used by 12,000 businesses.\nRan weekly usability sessions and turned findings into roadmap items.",
+        "Built and maintained a React and Node.js scheduling product used by 40,000 monthly users.\nMigrated a monolithic service to independently deployed services with zero customer downtime.\nAutomated release testing, shortening the release cycle from two weeks to three days.",
+    },
+    {
+      id: "e3",
+      jobTitle: "Junior Developer",
+      company: "Harbor Digital",
+      location: "Dallas, TX",
+      startDate: "2017-08",
+      endDate: "2019-05",
+      current: false,
+      description:
+        "Delivered features for client web applications in JavaScript and PostgreSQL.\nWrote the internal documentation used to onboard new developers.",
     },
   ],
   education: [
     {
       id: "d1",
-      institution: "University of Lagos",
-      degree: "B.Sc.",
+      institution: "University of Texas at Austin",
+      degree: "B.S.",
       fieldOfStudy: "Computer Science",
-      startDate: "2014-09",
-      endDate: "2018-06",
+      startDate: "2013-09",
+      endDate: "2017-05",
+      description: "Graduated with honours. Senior thesis on distributed caching strategies.",
+    },
+    {
+      id: "d2",
+      institution: "Austin Community College",
+      degree: "Certificate",
+      fieldOfStudy: "Data Analytics",
+      startDate: "2018-01",
+      endDate: "2018-12",
       description: "",
     },
   ],
-  skills: ["Figma", "User research", "Prototyping", "Design systems", "HTML & CSS", "Accessibility"].map(
-    (name, i) => ({ id: `s${i}`, name }),
-  ),
+  skills: [
+    "TypeScript",
+    "React",
+    "Node.js",
+    "PostgreSQL",
+    "System design",
+    "REST and GraphQL APIs",
+    "AWS",
+    "Docker",
+    "CI/CD",
+    "Testing",
+    "Mentoring",
+    "Technical writing",
+  ].map((name, i) => ({ id: `s${i}`, name })),
   projects: [
     {
       id: "p1",
-      name: "Open Transit Map",
-      description: "A community-maintained map of informal transit routes.\nUsed by 3 city planning groups.",
-      url: "opentransit.example.org",
-      technologies: "React, MapLibre",
+      name: "Open Schedule",
+      description:
+        "An open-source scheduling library with 1,200 stars on GitHub.\nMaintained by five contributors across three time zones.",
+      url: "github.com/alexmorgan/open-schedule",
+      technologies: "TypeScript, PostgreSQL",
+    },
+    {
+      id: "p2",
+      name: "Deploy Dashboard",
+      description: "Internal dashboard giving teams a single view of deployment health and rollbacks.",
+      url: "",
+      technologies: "React, Node.js",
     },
   ],
   certifications: [
     {
       id: "c1",
-      name: "Certified Usability Analyst",
-      organization: "HFI",
+      name: "AWS Certified Developer – Associate",
+      organization: "Amazon Web Services",
       issueDate: "2021-05",
+      expirationDate: "2024-05",
+      credentialUrl: "",
+    },
+    {
+      id: "c2",
+      name: "Professional Scrum Master I",
+      organization: "Scrum.org",
+      issueDate: "2020-02",
       expirationDate: "",
       credentialUrl: "",
     },
   ],
   languages: [
     { id: "l1", language: "English", proficiency: "Native" },
-    { id: "l2", language: "French", proficiency: "Conversational" },
+    { id: "l2", language: "Spanish", proficiency: "Professional working" },
   ],
   templateId: "",
 };

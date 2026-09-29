@@ -46,6 +46,7 @@ export default async function AdminTemplatesPage() {
             <thead className="border-b border-cream-dark text-xs uppercase tracking-wide text-charcoal/55">
               <tr>
                 <th className="px-4 py-3 font-medium">Name</th>
+                <th className="px-4 py-3 font-medium">Order</th>
                 <th className="px-4 py-3 font-medium">Category</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Updated</th>
@@ -59,6 +60,7 @@ export default async function AdminTemplatesPage() {
                     <div className="font-medium text-charcoal">{t.name}</div>
                     <div className="text-xs text-charcoal/50">{t.slug}</div>
                   </td>
+                  <td className="px-4 py-3 text-charcoal/70">{t.sort_order}</td>
                   <td className="px-4 py-3 text-charcoal/70">{t.category ?? "—"}</td>
                   <td className="px-4 py-3">
                     <span

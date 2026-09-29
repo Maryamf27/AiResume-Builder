@@ -118,10 +118,13 @@ function removeEntry<T extends { id: string }>(items: T[], id: string): T[] {
 export function ResumeBuilderProvider({
   children,
   resumeId,
+  initialTemplateSlug,
 }: {
   children: ReactNode;
   /** When set (dashboard "Edit" flow), load this specific resume instead of the latest one. */
   resumeId?: string;
+  /** Set by "Use template" on the public templates page (/builder?template=slug). */
+  initialTemplateSlug?: string;
 }) {
   const [resumeData, setResumeData] = useState<ResumeData>(createEmptyResumeData);
   const [title, setTitle] = useState<string>(DEFAULT_RESUME_TITLE);
@@ -569,7 +572,10 @@ export function ResumeBuilderProvider({
 
   const selectTemplate = useCallback(
     (id: string) => {
-      if (id === selectedTemplate?.id) return;
+      // Compare with the stored choice, not the displayed one: picking the
+      // template that is only showing as the default still saves the choice
+      // and records the selection.
+      if (id === resumeData.templateId) return;
       setResumeData((prev) => ({ ...prev, templateId: id }));
 
       // Usage analytics: fire-and-forget, never blocks or breaks the builder.
@@ -580,8 +586,31 @@ export function ResumeBuilderProvider({
           if (error) console.warn("Could not record template selection:", error.message);
         });
     },
-    [selectedTemplate, userId]
+    [resumeData.templateId, userId]
   );
+
+  // "Use template" on /templates lands here with ?template=<slug>. Apply it once
+  // the resume and the published templates have both loaded, then drop the
+  // parameter so a refresh doesn't undo a later choice.
+  const appliedInitialTemplateRef = useRef(false);
+  useEffect(() => {
+    if (!initialTemplateSlug || appliedInitialTemplateRef.current) return;
+    if (!hydrated || templatesStatus === "loading") return;
+
+    // Deferred, like bootstrap above, so the state update stays out of the effect body.
+    const timer = setTimeout(() => {
+      if (appliedInitialTemplateRef.current) return;
+      appliedInitialTemplateRef.current = true;
+
+      const match = templates.find((t) => t.slug === initialTemplateSlug);
+      if (match) selectTemplate(match.id);
+
+      const url = new URL(window.location.href);
+      url.searchParams.delete("template");
+      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [initialTemplateSlug, hydrated, templatesStatus, templates, selectTemplate]);
 
   const completeness = useMemo(() => calculateCompleteness(resumeData), [resumeData]);
 
