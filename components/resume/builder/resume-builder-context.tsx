@@ -46,6 +46,7 @@ interface ResumeBuilderContextValue {
   completeness: number;
 
   persistenceMode: PersistenceMode;
+  userId: string | null;
   saveStatus: SaveStatus;
   saveError: string | null;
   retrySave: () => void;
@@ -114,7 +115,14 @@ function removeEntry<T extends { id: string }>(items: T[], id: string): T[] {
   return items.filter((item) => item.id !== id);
 }
 
-export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
+export function ResumeBuilderProvider({
+  children,
+  resumeId,
+}: {
+  children: ReactNode;
+  /** When set (dashboard "Edit" flow), load this specific resume instead of the latest one. */
+  resumeId?: string;
+}) {
   const [resumeData, setResumeData] = useState<ResumeData>(createEmptyResumeData);
   const [title, setTitle] = useState<string>(DEFAULT_RESUME_TITLE);
   const [activeSection, setActiveSection] = useState<ResumeSectionId>("personal");
@@ -150,7 +158,7 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
     }
 
     const loadAdapter: ResumePersistenceAdapter = user
-      ? createSupabasePersistenceAdapter(user.id)
+      ? createSupabasePersistenceAdapter(user.id, resumeId)
       : createGuestPersistenceAdapter();
 
     let stored: ResumeRecord | null;
@@ -165,6 +173,16 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (runId !== bootstrapRunRef.current) return;
+
+    // A specific resume was requested (dashboard "Edit") but doesn't exist or
+    // isn't visible to this user — surface that instead of starting fresh and
+    // risking a duplicate record.
+    if (user && resumeId && !stored) {
+      setPersistenceMode(loadAdapter.mode);
+      setUserId(user.id);
+      setLoadFailed(true);
+      return;
+    }
 
     // Signed in: look for a resume built as a guest on this device.
     let guest: ResumeRecord | null = null;
@@ -217,11 +235,14 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
     setUserId(user?.id ?? null);
     setLoadFailed(false);
     setHydrated(true);
-  }, []);
+  }, [resumeId]);
 
   useEffect(() => {
-    void bootstrap();
+    // Defer so the async bootstrap (and its setState calls) stays out of the
+    // effect body.
+    const timer = setTimeout(() => void bootstrap(), 0);
     return () => {
+      clearTimeout(timer);
       bootstrapRunRef.current++;
     };
   }, [bootstrap]);
@@ -259,10 +280,10 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
 
   const adapter = useMemo<ResumePersistenceAdapter>(() => {
     if (persistenceMode === "authenticated" && userId) {
-      return createSupabasePersistenceAdapter(userId);
+      return createSupabasePersistenceAdapter(userId, resumeId);
     }
     return createGuestPersistenceAdapter();
-  }, [persistenceMode, userId]);
+  }, [persistenceMode, userId, resumeId]);
 
   const buildRecord = useCallback(
     (): ResumeRecord => ({
@@ -570,6 +591,7 @@ export function ResumeBuilderProvider({ children }: { children: ReactNode }) {
     updateTitle,
     completeness,
     persistenceMode,
+    userId,
     saveStatus,
     saveError,
     retrySave,

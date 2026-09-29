@@ -4,19 +4,27 @@ import { sanitizeResumeRecord } from "@/lib/resume/validation";
 import type { Json } from "@/types/supabase";
 import type { ResumeRecord } from "@/types/resume";
 
-export function createSupabasePersistenceAdapter(userId: string): ResumePersistenceAdapter {
+/**
+ * Persists one resume to Supabase. When `resumeId` is given, that specific
+ * resume is loaded (the dashboard "Edit" flow); otherwise the most recently
+ * updated one is used, preserving the original single-resume behavior.
+ */
+export function createSupabasePersistenceAdapter(
+  userId: string,
+  resumeId?: string
+): ResumePersistenceAdapter {
   return {
     mode: "authenticated",
 
     async load() {
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from("resumes")
-        .select("*")
-        .eq("user_id", userId)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      let query = supabase.from("resumes").select("*").eq("user_id", userId);
+      if (resumeId) {
+        query = query.eq("id", resumeId);
+      } else {
+        query = query.order("updated_at", { ascending: false }).limit(1);
+      }
+      const { data, error } = await query.maybeSingle();
 
       if (error) throw new Error(error.message);
       if (!data) return null;

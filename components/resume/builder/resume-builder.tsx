@@ -12,9 +12,9 @@ import GuestNotice from "@/components/resume/builder/guest-notice";
 import ActiveSectionForm from "@/components/resume/builder/active-section-form";
 import PreviewPane from "@/components/resume/builder/preview-pane";
 
-export default function ResumeBuilder() {
+export default function ResumeBuilder({ resumeId }: { resumeId?: string }) {
   return (
-    <ResumeBuilderProvider>
+    <ResumeBuilderProvider resumeId={resumeId}>
       <ResumeBuilderShell />
     </ResumeBuilderProvider>
   );
