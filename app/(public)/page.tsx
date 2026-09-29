@@ -244,7 +244,7 @@ export default function HomePage() {
               {["Editorial", "Structured", "Quiet", "Classic"].map((label) => (
                 <div
                   key={label}
-                  className="aspect-[3/4] rounded-lg border border-cream-dark/70 bg-cream p-4"
+                  className="aspect-3/4 rounded-lg border border-cream-dark/70 bg-cream p-4"
                 >
                   <div className="h-2 w-1/3 rounded-sm bg-olive/30" />
                   <div className="mt-4 space-y-2">

@@ -21,15 +21,18 @@ begin
   return query
   select
     (select count(*) from public.profiles),
-    (select count(*) from public.profiles where created_at >= now() - interval '7 days'),
+    (select count(*) from public.profiles pr where pr.created_at >= now() - interval '7 days'),
     (select count(*) from public.resumes),
-    (select count(*) from public.template_events where event_type = 'downloaded'),
-    (select count(*) from public.template_events where event_type = 'selected'),
-    (select count(*) from public.template_events where event_type = 'downloaded' and user_id is null),
-    (select count(*) from public.templates where is_published);
+    (select count(*) from public.template_events te where te.event_type = 'downloaded'),
+    (select count(*) from public.template_events te where te.event_type = 'selected'),
+    (select count(*) from public.template_events te where te.event_type = 'downloaded' and te.user_id is null),
+    (select count(*) from public.templates tp where tp.is_published);
 end;
 $$;
 
+-- ---------------------------------------------------------------------------
+-- One row per registered user, with activity counts
+-- ---------------------------------------------------------------------------
 create or replace function public.admin_user_overview()
 returns table (
   id uuid,
@@ -67,22 +70,21 @@ begin
     greatest(r.last_update, e.last_event)
   from public.profiles p
   left join (
-    select user_id, count(*) as cnt, max(updated_at) as last_update
-    from public.resumes group by user_id
+    select rs.user_id, count(*) as cnt, max(rs.updated_at) as last_update
+    from public.resumes rs group by rs.user_id
   ) r on r.user_id = p.id
   left join (
-    select user_id,
-           count(*) filter (where event_type = 'downloaded') as downloads,
-           count(*) filter (where event_type = 'selected') as selections,
-           max(created_at) as last_event
-    from public.template_events
-    where user_id is not null
-    group by user_id
+    select te.user_id,
+           count(*) filter (where te.event_type = 'downloaded') as downloads,
+           count(*) filter (where te.event_type = 'selected') as selections,
+           max(te.created_at) as last_event
+    from public.template_events te
+    where te.user_id is not null
+    group by te.user_id
   ) e on e.user_id = p.id
   order by p.created_at desc;
 end;
 $$;
-
 
 create or replace function public.admin_template_usage()
 returns table (
@@ -124,6 +126,7 @@ begin
     t.name;
 end;
 $$;
+
 
 create or replace function public.admin_daily_activity(days integer default 14)
 returns table (
