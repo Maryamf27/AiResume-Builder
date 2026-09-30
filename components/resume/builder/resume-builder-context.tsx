@@ -52,8 +52,6 @@ interface ResumeBuilderContextValue {
   retrySave: () => void;
   loadFailed: boolean;
   retryLoad: () => void;
-
-  /** A resume built as a guest on this device that hasn't been merged into the account yet. */
   hasPendingGuestResume: boolean;
   guestImportNotice: boolean;
   guestImportError: string | null;
@@ -63,7 +61,6 @@ interface ResumeBuilderContextValue {
 
   templates: PublishedTemplate[];
   templatesStatus: "loading" | "ready" | "error";
-  /** The template currently used for the preview, or null when none are published. */
   selectedTemplate: PublishedTemplate | null;
   selectTemplate: (id: string) => void;
 
@@ -122,15 +119,9 @@ export function ResumeBuilderProvider({
   startNew = false,
 }: {
   children: ReactNode;
-  /** When set (dashboard "Edit" flow), load this specific resume instead of the latest one. */
   resumeId?: string;
-  /** Set by "Use template" on the public templates page (/builder?template=slug). */
   initialTemplateSlug?: string;
-  /**
-   * Start a brand-new draft instead of loading the latest resume ("Use template"
-   * from the dashboard). Nothing is written to the database until the user adds
-   * content.
-   */
+ 
   startNew?: boolean;
 }) {
   const [resumeData, setResumeData] = useState<ResumeData>(createEmptyResumeData);
@@ -154,7 +145,6 @@ export function ResumeBuilderProvider({
   const createdAtRef = useRef<string>(new Date().toISOString());
   const hasSyncedAfterLoadRef = useRef(false);
   const bootstrapRunRef = useRef(0);
-  // True once this resume exists in the database (loaded from it, or saved to it).
   const persistedRef = useRef(false);
 
   const bootstrap = useCallback(async () => {
@@ -175,8 +165,6 @@ export function ResumeBuilderProvider({
 
     let stored: ResumeRecord | null;
     try {
-      // A new draft never loads an existing resume, or the chosen template
-      // would be applied to (and saved over) the user's latest one.
       stored = user && startNew && !resumeId ? null : await loadAdapter.load();
     } catch (error) {
       if (runId !== bootstrapRunRef.current) return;
@@ -188,9 +176,6 @@ export function ResumeBuilderProvider({
     }
     if (runId !== bootstrapRunRef.current) return;
 
-    // A specific resume was requested (dashboard "Edit") but doesn't exist or
-    // isn't visible to this user — surface that instead of starting fresh and
-    // risking a duplicate record.
     if (user && resumeId && !stored) {
       setPersistenceMode(loadAdapter.mode);
       setUserId(user.id);
@@ -198,7 +183,6 @@ export function ResumeBuilderProvider({
       return;
     }
 
-    // Signed in: look for a resume built as a guest on this device.
     let guest: ResumeRecord | null = null;
     let importedFromGuest = false;
     if (user) {
@@ -211,9 +195,6 @@ export function ResumeBuilderProvider({
 
     if (user && guest) {
       if (!stored && !(startNew && !resumeId)) {
-        // The account has no resume yet: move the guest one in automatically.
-        // (Not for an explicit "new resume" draft: the banner asks instead, so
-        // nothing gets saved that the user didn't choose.)
         const record: ResumeRecord = {
           ...guest,
           id: createId(),
@@ -227,10 +208,7 @@ export function ResumeBuilderProvider({
           importedFromGuest = true;
           guest = null;
         }
-        // On failure the guest copy stays on the device and the banner offers a retry.
       }
-      // If the account already has a resume, never overwrite it silently:
-      // `guest` stays pending and the banner asks the user what to do.
       if (runId !== bootstrapRunRef.current) return;
     }
 
@@ -599,6 +577,9 @@ export function ResumeBuilderProvider({
     },
     [updateArrayField]
   );
+
+  // Falls back to the first published template when nothing is chosen yet,
+  // or when the chosen one was unpublished/deleted since.
   const selectedTemplate = useMemo(
     () => templates.find((t) => t.id === resumeData.templateId) ?? templates[0] ?? null,
     [templates, resumeData.templateId]
@@ -606,9 +587,13 @@ export function ResumeBuilderProvider({
 
   const selectTemplate = useCallback(
     (id: string) => {
+      // Compare with the stored choice, not the displayed one: picking the
+      // template that is only showing as the default still saves the choice
+      // and records the selection.
       if (id === resumeData.templateId) return;
       setResumeData((prev) => ({ ...prev, templateId: id }));
 
+      // Usage analytics: fire-and-forget, never blocks or breaks the builder.
       void createClient()
         .from("template_events")
         .insert({ template_id: id, user_id: userId, event_type: "selected" })
@@ -618,11 +603,16 @@ export function ResumeBuilderProvider({
     },
     [resumeData.templateId, userId]
   );
+
+  // "Use template" on /templates lands here with ?template=<slug>. Apply it once
+  // the resume and the published templates have both loaded, then drop the
+  // parameter so a refresh doesn't undo a later choice.
   const appliedInitialTemplateRef = useRef(false);
   useEffect(() => {
     if (!initialTemplateSlug || appliedInitialTemplateRef.current) return;
     if (!hydrated || templatesStatus === "loading") return;
 
+    // Deferred, like bootstrap above, so the state update stays out of the effect body.
     const timer = setTimeout(() => {
       if (appliedInitialTemplateRef.current) return;
       appliedInitialTemplateRef.current = true;

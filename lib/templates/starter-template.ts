@@ -1,3 +1,8 @@
+/**
+ * A working example for the admin editor. Placeholders use {{name}}; lists use
+ * {{#experience}} ... {{/experience}}; sections are wrapped in {{#hasX}} so they
+ * disappear when empty. Use system font stacks: external fonts are blocked.
+ */
 export const STARTER_HTML = `<div class="page">
   <header>
     <h1>{{fullName}}</h1>

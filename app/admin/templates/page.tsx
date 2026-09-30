@@ -45,7 +45,7 @@ export default async function AdminTemplatesPage() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-cream-dark bg-cream-light">
-          <table className="w-full min-w-215 text-left text-sm">
+          <table className="w-full min-w-[860px] text-left text-sm">
             <thead className="border-b border-cream-dark text-xs uppercase tracking-wide text-charcoal/55">
               <tr>
                 <th className="px-4 py-3 font-medium">Name</th>

@@ -6,6 +6,7 @@ import { AlertCircle, CheckCircle2, Download, Loader2, X } from "lucide-react";
 import Button, { buttonClassName } from "@/components/ui/button";
 import { routes } from "@/lib/site";
 import { useResumeBuilder } from "@/components/resume/builder/resume-builder-context";
+import { useResumeDownload } from "@/components/resume/builder/use-resume-download";
 
 export default function CompleteDialog({
   open,
@@ -16,6 +17,7 @@ export default function CompleteDialog({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const { saveStatus, saveError, persistenceMode, retrySave, completeness } = useResumeBuilder();
+  const { download, preparing, error: downloadError } = useResumeDownload();
 
   useEffect(() => {
     const dialog = ref.current;
@@ -85,11 +87,19 @@ export default function CompleteDialog({
         )}
 
         <div className="flex flex-col gap-2">
-          {/* Enabled in the PDF Generation phase once templates and the A4 preview exist. */}
-          <Button disabled title="PDF download is coming soon">
-            <Download className="h-4 w-4" aria-hidden="true" />
-            Download as PDF (coming soon)
+          <Button onClick={download} disabled={preparing}>
+            {preparing ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Download className="h-4 w-4" aria-hidden="true" />
+            )}
+            {preparing ? "Preparing PDF…" : "Download as PDF"}
           </Button>
+          {downloadError && (
+            <p role="alert" className="text-sm text-destructive">
+              {downloadError}
+            </p>
+          )}
           <Button variant="outline" onClick={onClose}>
             Keep editing
           </Button>

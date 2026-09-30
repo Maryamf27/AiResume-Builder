@@ -1,19 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Download,
+  Eye,
   FileText,
   Loader2,
   Pencil,
   Plus,
+  TextCursorInput,
   Trash2,
 } from "lucide-react";
 import Button from "@/components/ui/button";
 import ButtonLink from "@/components/ui/button-link";
 import Dialog from "@/components/ui/dialog";
+import IconAction from "@/components/dashboard/icon-action";
+import ResumePreviewDialog from "@/components/dashboard/resume-preview-dialog";
 import { Input } from "@/components/ui/input";
 import {
   deleteResume,
@@ -45,6 +48,8 @@ export default function ResumeList({
   const router = useRouter();
   const [resumes, setResumes] = useState(initialResumes);
   const [templates, setTemplates] = useState<PublishedTemplate[]>([]);
+  const [templatesLoaded, setTemplatesLoaded] = useState(false);
+  const [previewing, setPreviewing] = useState<ResumeListItem | null>(null);
 
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<ResumeListItem | null>(null);
@@ -64,7 +69,10 @@ export default function ResumeList({
         .eq("is_published", true)
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true });
-      if (!cancelled) setTemplates(data ?? []);
+      if (!cancelled) {
+        setTemplates(data ?? []);
+        setTemplatesLoaded(true);
+      }
     })();
     return () => {
       cancelled = true;
@@ -77,13 +85,30 @@ export default function ResumeList({
     return templates.find((t) => t.id === id)?.name ?? null;
   }
 
+  // Same template choice as a download: the resume's own, else the first published.
+  function templateFor(resume: ResumeListItem): PublishedTemplate | null {
+    return templates.find((t) => t.id === resume.data?.templateId) ?? templates[0] ?? null;
+  }
+
+  const preview = useMemo(() => {
+    if (!previewing) return { srcDoc: null as string | null, error: null as string | null };
+    try {
+      const template =
+        templates.find((t) => t.id === previewing.data?.templateId) ?? templates[0] ?? null;
+      const filename = resumePdfFilename(previewing.title, previewing.data);
+      return { srcDoc: buildResumeDocument(template, previewing.data, filename), error: null };
+    } catch (err) {
+      console.error("Resume preview failed:", err);
+      return { srcDoc: null, error: "This resume couldn't be previewed." };
+    }
+  }, [previewing, templates]);
+
   async function handleDownload(resume: ResumeListItem) {
     if (downloadingId) return;
     setDownloadingId(resume.id);
     setActionError(null);
     try {
-      const template =
-        templates.find((t) => t.id === resume.data?.templateId) ?? templates[0] ?? null;
+      const template = templateFor(resume);
       const filename = resumePdfFilename(resume.title, resume.data);
       const doc = buildResumeDocument(template, resume.data, filename);
       printResumeDocument(doc);
@@ -172,50 +197,60 @@ export default function ResumeList({
                 {formatDate(resume.createdAt)}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href={`/builder?id=${resume.id}`}
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-olive px-3 text-sm font-medium text-cream transition-colors hover:bg-olive-dark"
+            <div className="flex items-center gap-1.5">
+              <IconAction
+                label="Preview"
+                tone="outline"
+                onClick={() => setPreviewing(resume)}
+                disabled={!templatesLoaded}
               >
-                <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                Edit
-              </Link>
-              <Button
-                variant="outline-olive"
-                size="sm"
+                <Eye className="h-4 w-4" aria-hidden="true" />
+              </IconAction>
+              <IconAction label="Edit" tone="primary" href={`/builder?id=${resume.id}`}>
+                <Pencil className="h-4 w-4" aria-hidden="true" />
+              </IconAction>
+              <IconAction
+                label={downloadingId === resume.id ? "Preparing PDF…" : "Download PDF"}
+                tone="outline-olive"
                 onClick={() => void handleDownload(resume)}
                 disabled={downloadingId !== null}
               >
                 {downloadingId === resume.id ? (
-                  <>
-                    <Loader2 data-icon="inline-start" className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                    Preparing PDF…
-                  </>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 ) : (
-                  <>
-                    <Download data-icon="inline-start" className="h-3.5 w-3.5" aria-hidden="true" />
-                    Download
-                  </>
+                  <Download className="h-4 w-4" aria-hidden="true" />
                 )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
+              </IconAction>
+              <IconAction
+                label="Rename"
+                tone="ghost"
                 onClick={() => {
                   setRenameValue(resume.title);
                   setRenaming(resume);
                 }}
               >
-                Rename
-              </Button>
-              <Button variant="ghost-destructive" size="sm" onClick={() => setDeleting(resume)}>
-                <Trash2 data-icon="inline-start" className="h-3.5 w-3.5" aria-hidden="true" />
-                Delete
-              </Button>
+                <TextCursorInput className="h-4 w-4" aria-hidden="true" />
+              </IconAction>
+              <IconAction label="Delete" tone="danger" onClick={() => setDeleting(resume)}>
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+              </IconAction>
             </div>
           </li>
         ))}
       </ul>
+
+      {/* Preview */}
+      <ResumePreviewDialog
+        open={previewing !== null}
+        onClose={() => setPreviewing(null)}
+        title={previewing?.title ?? ""}
+        templateName={previewing ? (templateFor(previewing)?.name ?? null) : null}
+        srcDoc={preview.srcDoc}
+        error={preview.error}
+        editHref={previewing ? `/builder?id=${previewing.id}` : "/dashboard/resumes"}
+        onDownload={() => previewing && void handleDownload(previewing)}
+        downloading={downloadingId !== null && downloadingId === previewing?.id}
+      />
 
       {/* Delete confirmation */}
       <Dialog

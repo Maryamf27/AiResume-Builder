@@ -1,8 +1,14 @@
 import type { ResumeData } from "@/types/resume";
 
+/**
+ * The flat, template-friendly shape that {{placeholders}} read from.
+ * Every value is a plain string / boolean / array of plain objects, so a
+ * template can never reach anything beyond the resume's own data.
+ */
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+/** "2025-12" -> "Dec 2025". Anything else is returned unchanged. */
 export function formatDate(value: string): string {
   const m = /^(\d{4})-(\d{2})(?:-\d{2})?$/.exec(value.trim());
   if (!m) return value.trim();
@@ -18,6 +24,7 @@ function dateRange(start: string, end: string, current = false): string {
   return from || to;
 }
 
+/** Only http(s) links are exposed as hrefs; anything else becomes "". */
 export function safeHref(value: string): string {
   const v = value.trim();
   if (!v) return "";

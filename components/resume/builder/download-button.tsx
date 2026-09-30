@@ -5,39 +5,18 @@ import Link from "next/link";
 import { Download, Loader2 } from "lucide-react";
 import Button from "@/components/ui/button";
 import Dialog from "@/components/ui/dialog";
-import { buildResumeDocument, printResumeDocument, resumePdfFilename } from "@/lib/resume/pdf";
-import { recordTemplateEvent } from "@/lib/resume/resumes";
 import { useResumeBuilder } from "@/components/resume/builder/resume-builder-context";
+import { useResumeDownload } from "@/components/resume/builder/use-resume-download";
 
 export default function DownloadButton() {
-  const { resumeData, title, selectedTemplate, persistenceMode, userId } =
-    useResumeBuilder();
-  const [preparing, setPreparing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { persistenceMode } = useResumeBuilder();
+  const { download, preparing, error } = useResumeDownload();
   const [showGuestPrompt, setShowGuestPrompt] = useState(false);
 
-  async function handleDownload() {
-    // Never allow two PDF generations at once.
-    if (preparing) return;
-    setPreparing(true);
-    setError(null);
-    try {
-      const filename = resumePdfFilename(title, resumeData);
-      const doc = buildResumeDocument(selectedTemplate, resumeData, filename);
-      printResumeDocument(doc);
-      // Count the download only after the print window actually opened.
-      if (selectedTemplate) {
-        recordTemplateEvent(selectedTemplate.id, userId, "downloaded");
-      }
-      if (persistenceMode === "guest") {
-        setShowGuestPrompt(true);
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Couldn't prepare the PDF. Please try again."
-      );
-    } finally {
-      setPreparing(false);
+  function handleDownload() {
+    const opened = download();
+    if (opened && persistenceMode === "guest") {
+      setShowGuestPrompt(true);
     }
   }
 
@@ -47,7 +26,7 @@ export default function DownloadButton() {
         type="button"
         variant="outline-olive"
         size="sm"
-        onClick={() => void handleDownload()}
+        onClick={handleDownload}
         disabled={preparing}
       >
         {preparing ? (

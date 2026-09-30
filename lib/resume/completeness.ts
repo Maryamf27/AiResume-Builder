@@ -1,5 +1,10 @@
 import type { ResumeData } from "@/types/resume";
 
+/**
+ * Each section contributes its own share so that filling in one section
+ * (e.g. Personal Information) can never account for half of the resume.
+ * Weights add up to 100.
+ */
 const WEIGHTS = {
   personal: 25,
   summary: 15,

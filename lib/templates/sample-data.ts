@@ -1,5 +1,9 @@
 import type { ResumeData } from "@/types/resume";
 
+/**
+ * Realistic but clearly fictional content used to preview templates
+ * (admin editor, builder thumbnails, public catalogue). No real person.
+ */
 export const sampleResume: ResumeData = {
   personal: {
     firstName: "Alex",

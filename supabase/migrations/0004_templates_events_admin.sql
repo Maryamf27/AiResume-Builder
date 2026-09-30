@@ -1,9 +1,3 @@
--- 0004: templates, usage events, admin role, storage bucket.
--- Run after 0001-0003. Safe to re-run.
-
--- ---------------------------------------------------------------------------
--- 1. Admin role on profiles
--- ---------------------------------------------------------------------------
 alter table public.profiles
   add column if not exists role text not null default 'user';
 
@@ -11,14 +5,9 @@ alter table public.profiles drop constraint if exists profiles_role_check;
 alter table public.profiles
   add constraint profiles_role_check check (role in ('user', 'admin'));
 
--- SECURITY: the existing "profiles_update_own" policy lets a user update their
--- own row, which would now include `role` (self-promotion to admin). Limit what
--- signed-in users may write to the profile columns they legitimately edit.
 revoke update on public.profiles from anon, authenticated;
 grant update (full_name) on public.profiles to authenticated;
 
--- Helper used by every admin policy. SECURITY DEFINER so it can read profiles
--- without going through (and recursing into) profiles' own RLS.
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -41,9 +30,6 @@ create policy "profiles_select_admin"
   to authenticated
   using (public.is_admin());
 
--- ---------------------------------------------------------------------------
--- 2. Templates (added by admins at any time, no app release needed)
--- ---------------------------------------------------------------------------
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
@@ -118,9 +104,6 @@ create policy "templates_delete_admin"
   to authenticated
   using (public.is_admin());
 
--- ---------------------------------------------------------------------------
--- 3. Usage events (feeds the admin analytics)
--- ---------------------------------------------------------------------------
 create table if not exists public.template_events (
   id uuid primary key default gen_random_uuid(),
   template_id uuid not null references public.templates(id) on delete cascade,
@@ -158,10 +141,6 @@ create policy "template_events_select_admin"
   on public.template_events for select
   to authenticated
   using (public.is_admin());
-
--- ---------------------------------------------------------------------------
--- 4. Feedback: let admins read reports and change their status
--- ---------------------------------------------------------------------------
 grant select, update on public.feedback to authenticated;
 
 drop policy if exists "feedback_select_admin" on public.feedback;
@@ -177,9 +156,6 @@ create policy "feedback_update_admin"
   using (public.is_admin())
   with check (public.is_admin());
 
--- ---------------------------------------------------------------------------
--- 5. Storage bucket for template thumbnails / assets
--- ---------------------------------------------------------------------------
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'template-assets', 'template-assets', true, 2097152,
@@ -206,10 +182,3 @@ create policy "template_assets_delete_admin"
   on storage.objects for delete
   to authenticated
   using (bucket_id = 'template-assets' and public.is_admin());
-
--- ---------------------------------------------------------------------------
--- Making yourself the first admin (run once in the SQL editor, which runs as
--- the postgres owner and is not affected by the column restriction above):
---
---   update public.profiles set role = 'admin' where email = 'you@example.com';
--- ---------------------------------------------------------------------------

@@ -193,6 +193,10 @@ export interface Database {
         Args: Record<PropertyKey, never>;
         Returns: boolean;
       };
+      delete_my_account: {
+        Args: Record<PropertyKey, never>;
+        Returns: undefined;
+      };
       admin_summary: {
         Args: Record<PropertyKey, never>;
         Returns: {
