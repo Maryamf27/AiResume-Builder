@@ -10,12 +10,6 @@ const TAGS = [
   "time", "u", "ul",
 ];
 
-/**
- * Cleans admin-supplied template markup. Scripts, event handlers, iframes,
- * forms, <style>/<link> tags and non-http(s) links are removed. {{placeholders}}
- * pass through untouched. Rendering is additionally locked down by a CSP and a
- * script-less sandboxed iframe, so this is one of several layers.
- */
 export function sanitizeTemplateHtml(html: string): string {
   return sanitizeHtml(html, {
     allowedTags: TAGS,
@@ -29,12 +23,10 @@ export function sanitizeTemplateHtml(html: string): string {
     allowedSchemes: ["http", "https", "mailto", "tel"],
     allowedSchemesByTag: { img: ["data"] },
     allowProtocolRelative: false,
-    // Keep Mustache section tags such as {{#experience}} intact inside text.
     disallowedTagsMode: "discard",
   });
 }
 
-/** CSS may not pull in anything from the network. Returns a problem or null. */
 export function findUnsafeCss(css: string): string | null {
   if (/@import/i.test(css)) return "CSS @import is not allowed.";
   if (/expression\s*\(|behavior\s*:|-moz-binding|javascript:/i.test(css)) {
@@ -47,7 +39,6 @@ export function findUnsafeCss(css: string): string | null {
   return null;
 }
 
-/** Same rule as CSS url(), applied to inline style="" attributes in the markup. */
 export function findUnsafeInlineStyle(html: string): string | null {
   if (/url\(\s*(?!["']?\s*data:)/i.test(html) || /expression\s*\(/i.test(html)) {
     return "Inline styles may not load external resources.";

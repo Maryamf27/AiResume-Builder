@@ -1,6 +1,5 @@
 import type { ResumeData } from "@/types/resume";
 
-
 const WEIGHTS = {
   personal: 25,
   summary: 15,

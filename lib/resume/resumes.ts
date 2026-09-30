@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import { DEFAULT_RESUME_TITLE, createEmptyResumeData } from "@/lib/resume/constants";
-import type { Json } from "@/types/supabase";
+import { DEFAULT_RESUME_TITLE } from "@/lib/resume/constants";
 import type { ResumeData } from "@/types/resume";
 
 /** A resume row as the dashboard needs it. */
@@ -39,26 +38,6 @@ export async function listResumes(userId: string): Promise<ResumeListResult> {
   };
 }
 
-
-export async function createResume(
-  userId: string
-): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("resumes")
-    .insert({
-      user_id: userId,
-      title: DEFAULT_RESUME_TITLE,
-      data: createEmptyResumeData() as unknown as Json,
-    })
-    .select("id")
-    .single();
-
-  if (error || !data) {
-    return { ok: false, error: error?.message ?? "Could not create the resume." };
-  }
-  return { ok: true, id: data.id };
-}
 
 export async function renameResume(id: string, title: string): Promise<string | null> {
   const trimmed = title.trim() || DEFAULT_RESUME_TITLE;

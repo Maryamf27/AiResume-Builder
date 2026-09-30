@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   Briefcase,
   Download,
@@ -12,6 +13,8 @@ import Badge from "@/components/ui/badge";
 import ButtonLink from "@/components/ui/button-link";
 import FinalCta from "@/components/public/final-cta";
 import ResumePreviewCard from "@/components/public/resume-preview-card";
+import TemplateFrame from "@/components/templates/template-frame";
+import { loadPublishedTemplates } from "@/lib/templates/load-gallery";
 import { NavTextLink } from "@/components/public/nav-links";
 import { faqPreviewItems } from "@/lib/content/faq";
 import {
@@ -103,7 +106,10 @@ const homeFeatures: {
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Real published templates for the showcase section (first four by sort order).
+  const { items: featured } = await loadPublishedTemplates(4);
+
   return (
     <main id="main-content">
       <section className="relative overflow-hidden">
@@ -240,23 +246,45 @@ export default function HomePage() {
                 </ButtonLink>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4 lg:col-span-7">
-              {["Editorial", "Structured", "Quiet", "Classic"].map((label) => (
-                <div
-                  key={label}
-                  className="aspect-3/4 rounded-lg border border-cream-dark/70 bg-cream p-4"
-                >
-                  <div className="h-2 w-1/3 rounded-sm bg-olive/30" />
-                  <div className="mt-4 space-y-2">
-                    <div className="h-1.5 w-full rounded-sm bg-charcoal/10" />
-                    <div className="h-1.5 w-5/6 rounded-sm bg-charcoal/10" />
-                    <div className="h-1.5 w-2/3 rounded-sm bg-charcoal/10" />
-                  </div>
-                  <p className="mt-auto pt-8 text-xs uppercase tracking-[0.16em] text-charcoal/45">
-                    {label} direction
-                  </p>
+            <div className="lg:col-span-7">
+              {featured.length > 0 ? (
+                <ul className="grid grid-cols-2 gap-4">
+                  {featured.map((t) => (
+                    <li key={t.id}>
+                      <Link
+                        href={routes.templates}
+                        aria-label={`See the ${t.name} template and the rest of the collection`}
+                        className="group block rounded-lg border border-cream-dark/70 bg-cream p-3 transition-colors hover:border-olive/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive-light"
+                      >
+                        {/* The frame is inert so the link receives the click. */}
+                        <div className="pointer-events-none overflow-hidden rounded-sm border border-cream-dark bg-white">
+                          <TemplateFrame
+                            srcDoc={t.srcDoc}
+                            title={`${t.name} template preview`}
+                            className="rounded-none border-0 shadow-none"
+                            lazy
+                          />
+                        </div>
+                        <p className="mt-3 flex items-baseline justify-between gap-2 px-1 text-sm">
+                          <span className="truncate font-medium text-charcoal group-hover:text-olive">
+                            {t.name}
+                          </span>
+                          {t.category && (
+                            <span className="shrink-0 text-xs uppercase tracking-[0.14em] text-charcoal/45">
+                              {t.category}
+                            </span>
+                          )}
+                        </p>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="rounded-lg border border-dashed border-cream-dark bg-cream px-6 py-12 text-center text-sm text-charcoal/65">
+                  Templates are being prepared. You can start your resume now and choose a
+                  layout later.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

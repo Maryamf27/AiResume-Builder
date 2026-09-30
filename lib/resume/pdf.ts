@@ -59,11 +59,9 @@ export function printResumeDocument(doc: string): void {
   };
 
   if (win.document.readyState === "complete") {
-    // Give the renderer a beat to lay out the document.
     setTimeout(triggerPrint, 150);
   } else {
     win.addEventListener("load", () => setTimeout(triggerPrint, 150));
-    // Fallback in case the load event was missed.
     setTimeout(triggerPrint, 1500);
   }
 }

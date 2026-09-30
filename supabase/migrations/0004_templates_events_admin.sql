@@ -136,6 +136,7 @@ create index if not exists template_events_created_at_idx
 
 alter table public.template_events enable row level security;
 
+-- Append-only from the client; only admins can read.
 revoke all on public.template_events from anon, authenticated;
 grant insert on public.template_events to anon, authenticated;
 grant select on public.template_events to authenticated;
@@ -158,6 +159,9 @@ create policy "template_events_select_admin"
   to authenticated
   using (public.is_admin());
 
+-- ---------------------------------------------------------------------------
+-- 4. Feedback: let admins read reports and change their status
+-- ---------------------------------------------------------------------------
 grant select, update on public.feedback to authenticated;
 
 drop policy if exists "feedback_select_admin" on public.feedback;
@@ -173,7 +177,9 @@ create policy "feedback_update_admin"
   using (public.is_admin())
   with check (public.is_admin());
 
-
+-- ---------------------------------------------------------------------------
+-- 5. Storage bucket for template thumbnails / assets
+-- ---------------------------------------------------------------------------
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'template-assets', 'template-assets', true, 2097152,
@@ -181,6 +187,7 @@ values (
 )
 on conflict (id) do nothing;
 
+-- Public bucket = anyone can read objects by URL. Only admins may write.
 drop policy if exists "template_assets_insert_admin" on storage.objects;
 create policy "template_assets_insert_admin"
   on storage.objects for insert
@@ -199,3 +206,10 @@ create policy "template_assets_delete_admin"
   on storage.objects for delete
   to authenticated
   using (bucket_id = 'template-assets' and public.is_admin());
+
+-- ---------------------------------------------------------------------------
+-- Making yourself the first admin (run once in the SQL editor, which runs as
+-- the postgres owner and is not affected by the column restriction above):
+--
+--   update public.profiles set role = 'admin' where email = 'you@example.com';
+-- ---------------------------------------------------------------------------

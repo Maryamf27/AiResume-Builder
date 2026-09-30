@@ -210,8 +210,10 @@ export function ResumeBuilderProvider({
     }
 
     if (user && guest) {
-      if (!stored) {
+      if (!stored && !(startNew && !resumeId)) {
         // The account has no resume yet: move the guest one in automatically.
+        // (Not for an explicit "new resume" draft: the banner asks instead, so
+        // nothing gets saved that the user didn't choose.)
         const record: ResumeRecord = {
           ...guest,
           id: createId(),
@@ -318,7 +320,15 @@ export function ResumeBuilderProvider({
     setSaveError(null);
     adapter.save(buildRecord()).then((result) => {
       if (result.ok) {
-        if (adapter.mode === "authenticated") persistedRef.current = true;
+        if (adapter.mode === "authenticated") {
+          const firstSave = !persistedRef.current;
+          persistedRef.current = true;
+          // A new draft (?new=1) now exists in the database. Point the URL at
+          // it so a refresh reopens this resume instead of starting a blank one.
+          if (firstSave && startNew && typeof window !== "undefined") {
+            window.history.replaceState(null, "", `/builder?id=${recordIdRef.current}`);
+          }
+        }
         setSaveStatus("saved");
       } else {
         console.error("Resume save failed:", result.error);
@@ -326,7 +336,7 @@ export function ResumeBuilderProvider({
         setSaveError(result.error);
       }
     });
-  }, [adapter, buildRecord]);
+  }, [adapter, buildRecord, startNew]);
   useEffect(() => {
     if (!hydrated) return;
     if (!hasSyncedAfterLoadRef.current) {
@@ -589,9 +599,6 @@ export function ResumeBuilderProvider({
     },
     [updateArrayField]
   );
-
-  // Falls back to the first published template when nothing is chosen yet,
-  // or when the chosen one was unpublished/deleted since.
   const selectedTemplate = useMemo(
     () => templates.find((t) => t.id === resumeData.templateId) ?? templates[0] ?? null,
     [templates, resumeData.templateId]
@@ -599,13 +606,9 @@ export function ResumeBuilderProvider({
 
   const selectTemplate = useCallback(
     (id: string) => {
-      // Compare with the stored choice, not the displayed one: picking the
-      // template that is only showing as the default still saves the choice
-      // and records the selection.
       if (id === resumeData.templateId) return;
       setResumeData((prev) => ({ ...prev, templateId: id }));
 
-      // Usage analytics: fire-and-forget, never blocks or breaks the builder.
       void createClient()
         .from("template_events")
         .insert({ template_id: id, user_id: userId, event_type: "selected" })
@@ -615,16 +618,11 @@ export function ResumeBuilderProvider({
     },
     [resumeData.templateId, userId]
   );
-
-  // "Use template" on /templates lands here with ?template=<slug>. Apply it once
-  // the resume and the published templates have both loaded, then drop the
-  // parameter so a refresh doesn't undo a later choice.
   const appliedInitialTemplateRef = useRef(false);
   useEffect(() => {
     if (!initialTemplateSlug || appliedInitialTemplateRef.current) return;
     if (!hydrated || templatesStatus === "loading") return;
 
-    // Deferred, like bootstrap above, so the state update stays out of the effect body.
     const timer = setTimeout(() => {
       if (appliedInitialTemplateRef.current) return;
       appliedInitialTemplateRef.current = true;

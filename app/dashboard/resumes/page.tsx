@@ -44,7 +44,7 @@ export default async function MyResumesPage() {
               : `${resumes.length} ${resumes.length === 1 ? "resume" : "resumes"} — edit, rename, download or delete.`}
           </p>
         </div>
-        <CreateResumeButton userId={user.id} />
+        <CreateResumeButton />
       </div>
 
       <section className="mt-8">

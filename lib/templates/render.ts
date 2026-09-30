@@ -10,11 +10,6 @@ export interface TemplateSource {
 export const A4_WIDTH_PX = 794; // 210mm at 96dpi
 export const A4_HEIGHT_PX = 1123; // 297mm at 96dpi
 
-/**
- * Unescaped output ({{{x}}}, {{&x}}) and custom delimiters ({{=<% %>=}}) would
- * let resume text inject markup, so templates may not use them. Returns a
- * message describing the first problem, or null when the syntax is fine.
- */
 export function findUnsafeSyntax(html: string): string | null {
   if (/\{\{\{/.test(html) || /\{\{\s*&/.test(html)) {
     return "Unescaped tags ({{{ }}} and {{& }}) are not allowed. Use {{name}}.";
@@ -24,7 +19,6 @@ export function findUnsafeSyntax(html: string): string | null {
   return null;
 }
 
-/** Throws a readable error when the template markup is not valid Mustache. */
 export function checkTemplateSyntax(html: string): string | null {
   const unsafe = findUnsafeSyntax(html);
   if (unsafe) return unsafe;
@@ -36,7 +30,6 @@ export function checkTemplateSyntax(html: string): string | null {
   return null;
 }
 
-// Resume text is escaped by Mustache; this also covers quotes used in attributes.
 const ESCAPES: Record<string, string> = {
   "&": "&amp;",
   "<": "&lt;",
@@ -49,12 +42,6 @@ const ESCAPES: Record<string, string> = {
 };
 const escapeHtml = (s: string) => String(s).replace(/[&<>"'`=/]/g, (c) => ESCAPES[c]);
 
-/**
- * Fills a template with resume data and returns a complete, self-contained
- * HTML document. The document carries a strict Content-Security-Policy (no
- * scripts, no network, images/fonts only from data: URIs) and is meant to be
- * shown in a sandboxed iframe or printed to PDF.
- */
 export function renderTemplateDocument(template: TemplateSource, data: ResumeData): string {
   const unsafe = findUnsafeSyntax(template.html);
   if (unsafe) throw new Error(unsafe);
@@ -63,7 +50,6 @@ export function renderTemplateDocument(template: TemplateSource, data: ResumeDat
     escape: escapeHtml,
   });
 
-  // A stray "</style" in the CSS would end the style block early.
   const css = template.css.replace(/<\/style/gi, "");
 
   return `<!doctype html>

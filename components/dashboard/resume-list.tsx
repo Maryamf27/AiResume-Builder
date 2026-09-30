@@ -12,10 +12,10 @@ import {
   Trash2,
 } from "lucide-react";
 import Button from "@/components/ui/button";
+import ButtonLink from "@/components/ui/button-link";
 import Dialog from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
-  createResume,
   deleteResume,
   recordTemplateEvent,
   renameResume,
@@ -46,7 +46,6 @@ export default function ResumeList({
   const [resumes, setResumes] = useState(initialResumes);
   const [templates, setTemplates] = useState<PublishedTemplate[]>([]);
 
-  const [creating, setCreating] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<ResumeListItem | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
@@ -76,19 +75,6 @@ export default function ResumeList({
     const id = resume.data?.templateId;
     if (!id) return null;
     return templates.find((t) => t.id === id)?.name ?? null;
-  }
-
-  async function handleCreate() {
-    if (creating) return;
-    setCreating(true);
-    setActionError(null);
-    const result = await createResume(userId);
-    if (!result.ok) {
-      setCreating(false);
-      setActionError("Couldn't create a new resume. Please try again.");
-      return;
-    }
-    router.push(`/builder?id=${result.id}`);
   }
 
   async function handleDownload(resume: ResumeListItem) {
@@ -154,14 +140,10 @@ export default function ResumeList({
           Pick a template, fill in your details, and download a polished PDF in
           minutes.
         </p>
-        <Button className="mt-6" onClick={() => void handleCreate()} disabled={creating}>
-          {creating ? (
-            <Loader2 data-icon="inline-start" className="h-4 w-4 animate-spin" aria-hidden="true" />
-          ) : (
-            <Plus data-icon="inline-start" className="h-4 w-4" aria-hidden="true" />
-          )}
+        <ButtonLink href="/builder?new=1" className="mt-6">
+          <Plus data-icon="inline-start" className="h-4 w-4" aria-hidden="true" />
           Create your first resume
-        </Button>
+        </ButtonLink>
         {actionError && (
           <p className="mt-3 text-sm text-destructive" role="alert">{actionError}</p>
         )}

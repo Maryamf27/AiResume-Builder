@@ -45,16 +45,16 @@ export default async function AdminTemplatesPage() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-cream-dark bg-cream-light">
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-215 text-left text-sm">
             <thead className="border-b border-cream-dark text-xs uppercase tracking-wide text-charcoal/55">
               <tr>
                 <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Order</th>
+                <th className="whitespace-nowrap px-4 py-3 text-center font-medium">Order</th>
                 <th className="px-4 py-3 font-medium">Category</th>
                 <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 text-right font-medium">Selected</th>
-                <th className="px-4 py-3 text-right font-medium">Downloads</th>
-                <th className="px-4 py-3 font-medium">Updated</th>
+                <th className="whitespace-nowrap px-4 py-3 text-center font-medium">Selected</th>
+                <th className="whitespace-nowrap px-4 py-3 text-center font-medium">Downloads</th>
+                <th className="whitespace-nowrap px-4 py-3 font-medium">Updated</th>
                 <th className="px-4 py-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
@@ -65,7 +65,7 @@ export default async function AdminTemplatesPage() {
                     <div className="font-medium text-charcoal">{t.name}</div>
                     <div className="text-xs text-charcoal/50">{t.slug}</div>
                   </td>
-                  <td className="px-4 py-3 text-charcoal/70">{t.sort_order}</td>
+                  <td className="px-4 py-3 text-center tabular-nums text-charcoal/70">{t.sort_order}</td>
                   <td className="px-4 py-3 text-charcoal/70">{t.category ?? "—"}</td>
                   <td className="px-4 py-3">
                     <span
@@ -78,17 +78,17 @@ export default async function AdminTemplatesPage() {
                       {t.is_published ? "Published" : "Draft"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-charcoal/80">
+                  <td className="px-4 py-3 text-center tabular-nums text-charcoal/80">
                     {usage.get(t.id)?.selected_count ?? 0}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-charcoal/80">
+                  <td className="px-4 py-3 text-center tabular-nums text-charcoal/80">
                     {usage.get(t.id)?.downloaded_count ?? 0}
                   </td>
-                  <td className="px-4 py-3 text-charcoal/60">
+                  <td className="whitespace-nowrap px-4 py-3 text-charcoal/60">
                     {new Date(t.updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="-mr-3 flex items-center justify-end gap-1">
                       <Link href={`/admin/templates/${t.id}`} className={buttonClassName({ variant: "outline", size: "sm" })}>
                         Edit
                       </Link>

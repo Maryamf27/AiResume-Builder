@@ -6,7 +6,6 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const srcDir = path.join(root, "supabase/templates");
 const outFile = path.join(root, "supabase/migrations/0005_launch_templates.sql");
 
-// Tag allow-list is read from the app's sanitizer so the two cannot drift.
 const sanitizeSource = fs.readFileSync(path.join(root, "lib/templates/sanitize.ts"), "utf8");
 const tagsBlock = /const TAGS = \[([\s\S]*?)\];/.exec(sanitizeSource);
 if (!tagsBlock) throw new Error("Could not read the TAGS allow-list from lib/templates/sanitize.ts");

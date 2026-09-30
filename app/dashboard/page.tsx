@@ -41,7 +41,6 @@ export default async function DashboardPage() {
     user.email?.split("@")[0] ??
     "there";
 
-  // Overview only: a count plus the three most recent. The full list lives at /dashboard/resumes.
   const [{ data: recent }, { count: resumeCount }, { count: templateCount }] = await Promise.all([
     supabase
       .from("resumes")
@@ -70,7 +69,7 @@ export default async function DashboardPage() {
             Pick up where you left off, or start something new.
           </p>
         </div>
-        <CreateResumeButton userId={user.id} />
+        <CreateResumeButton />
       </div>
 
       {/* At-a-glance numbers */}

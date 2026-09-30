@@ -58,6 +58,7 @@ export default function TemplateForm({
   const [html, setHtml] = useState(initial.html);
   const [css, setCss] = useState(initial.css);
 
+  // Keep typing snappy: the preview follows a beat behind the editor.
   const deferredHtml = useDeferredValue(html);
   const deferredCss = useDeferredValue(css);
 
@@ -159,7 +160,7 @@ export default function TemplateForm({
             type="checkbox"
             name="is_published"
             defaultChecked={initial.isPublished}
-            className="h-4 w-4 accent-(--color-olive,#4a6b53)"
+            className="h-4 w-4 accent-[var(--color-olive,#4a6b53)]"
           />
           Published (visible to users)
         </label>

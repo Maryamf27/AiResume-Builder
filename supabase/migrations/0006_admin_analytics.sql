@@ -30,9 +30,6 @@ begin
 end;
 $$;
 
--- ---------------------------------------------------------------------------
--- One row per registered user, with activity counts
--- ---------------------------------------------------------------------------
 create or replace function public.admin_user_overview()
 returns table (
   id uuid,
@@ -126,7 +123,6 @@ begin
     t.name;
 end;
 $$;
-
 
 create or replace function public.admin_daily_activity(days integer default 14)
 returns table (
