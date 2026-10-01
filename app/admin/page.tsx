@@ -35,7 +35,7 @@ export default async function AdminOverviewPage() {
   const maxDaily = Math.max(1, ...daily.map((d) => Math.max(d.downloads, d.selections)));
 
   return (
-    <div>
+    <div className="w-full min-w-0">
       <h1 className="font-serif text-2xl text-charcoal sm:text-3xl">Admin overview</h1>
       <p className="mt-2 text-sm text-charcoal/60">
         Users, downloads and template usage across the whole app.
@@ -49,21 +49,21 @@ export default async function AdminOverviewPage() {
       )}
 
       {/* Headline stats */}
-      <dl className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <Stat icon={<Users className="h-4 w-4" />} label="Total users" value={summary?.total_users} />
-        <Stat icon={<UserPlus className="h-4 w-4" />} label="New users (7 days)" value={summary?.new_users_7d} />
-        <Stat icon={<FileText className="h-4 w-4" />} label="Resumes created" value={summary?.total_resumes} />
+      <dl className="mt-6 grid w-full min-w-0 grid-cols-2 gap-3 sm:mt-8 sm:gap-4 xl:grid-cols-3">
+        <Stat icon={<Users className="h-3 w-3 sm:h-4 sm:w-4" />} label="Total users" value={summary?.total_users} />
+        <Stat icon={<UserPlus className="h-3 w-3 sm:h-4 sm:w-4" />} label="New users (7 days)" value={summary?.new_users_7d} />
+        <Stat icon={<FileText className="h-3 w-3 sm:h-4 sm:w-4" />} label="Resumes created" value={summary?.total_resumes} />
         <Stat
-          icon={<Download className="h-4 w-4" />}
+          icon={<Download className="h-3 w-3 sm:h-4 sm:w-4" />}
           label="Downloads"
           value={summary?.total_downloads}
           hint={summary ? `${nf.format(summary.guest_downloads)} from guests` : undefined}
         />
-        <Stat icon={<MousePointerClick className="h-4 w-4" />} label="Template selections" value={summary?.total_selections} />
-        <Stat icon={<LayoutTemplate className="h-4 w-4" />} label="Published templates" value={summary?.published_templates} />
+        <Stat icon={<MousePointerClick className="h-3 w-3 sm:h-4 sm:w-4" />} label="Template selections" value={summary?.total_selections} />
+        <Stat icon={<LayoutTemplate className="h-3 w-3 sm:h-4 sm:w-4" />} label="Published templates" value={summary?.published_templates} />
       </dl>
 
-      <div className="mt-10 grid gap-6 xl:grid-cols-2">
+      <div className="mt-10 w-full min-w-0 grid gap-6 xl:grid-cols-2">
         {/* Most used templates */}
         <section className="rounded-lg border border-cream-dark bg-cream-light p-5" aria-labelledby="top-templates">
           <div className="mb-4 flex items-center justify-between">
@@ -119,7 +119,7 @@ export default async function AdminOverviewPage() {
             <p className="py-6 text-center text-sm text-charcoal/55">No activity data yet.</p>
           ) : (
             <div className="overflow-x-auto">
-              <div className="flex h-44 min-w-105 items-end gap-1.5">
+              <div className="flex h-44 min-w-[420px] items-end gap-1.5 sm:min-w-full">
                 {daily.map((d) => (
                   <div key={d.day} className="flex h-full flex-1 flex-col justify-end" title={`${shortDay(d.day)} — ${d.downloads} downloads, ${d.selections} selections, ${d.signups} signups`}>
                     <div className="flex flex-1 items-end justify-center gap-0.5">
@@ -138,7 +138,7 @@ export default async function AdminOverviewPage() {
       </div>
 
       {/* Recent signups */}
-      <section className="mt-6 rounded-lg border border-cream-dark bg-cream-light p-5" aria-labelledby="recent-users">
+      <section className="mt-6 w-full min-w-0 rounded-lg border border-cream-dark bg-cream-light p-5" aria-labelledby="recent-users">
         <div className="mb-4 flex items-center justify-between">
           <h2 id="recent-users" className="text-sm font-semibold uppercase tracking-wide text-charcoal/50">
             Newest users
@@ -181,13 +181,13 @@ function Stat({
   hint?: string;
 }) {
   return (
-    <div className="rounded-lg border border-cream-dark bg-cream-light p-4">
-      <dt className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-charcoal/50">
+    <div className="w-full min-w-0 rounded-lg border border-cream-dark bg-cream-light p-3 sm:p-4">
+      <dt className="flex min-h-7 items-start gap-1.5 text-[10px] font-medium uppercase leading-tight tracking-wide text-charcoal/50 sm:min-h-0 sm:items-center sm:gap-2 sm:text-xs">
         <span className="text-olive">{icon}</span>
         {label}
       </dt>
-      <dd className="mt-2 font-serif text-3xl text-charcoal">{value === undefined ? "—" : nf.format(value)}</dd>
-      {hint && <p className="mt-1 text-xs text-charcoal/50">{hint}</p>}
+      <dd className="mt-1.5 font-serif text-2xl text-charcoal sm:mt-2 sm:text-3xl">{value === undefined ? "—" : nf.format(value)}</dd>
+      {hint && <p className="mt-1 text-[10px] text-charcoal/50 sm:text-xs">{hint}</p>}
     </div>
   );
 }

@@ -61,7 +61,7 @@ export default async function DashboardPage() {
 
   return (
     <DashboardShell>
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="w-full min-w-0 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-serif text-2xl text-charcoal sm:text-3xl">
             Good to see you, {String(displayName)}

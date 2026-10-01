@@ -79,9 +79,9 @@ export default function AdminShell({
   );
 
   const brand = (
-    <Link href="/admin" className="flex items-center gap-2">
-      <span className="font-serif text-lg text-charcoal">{SITE_NAME}</span>
-      <span className="inline-flex items-center gap-1 rounded-full bg-olive/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-olive">
+    <Link href="/admin" className="flex min-w-0 items-center gap-2">
+      <span className="truncate font-serif text-lg text-charcoal">{SITE_NAME}</span>
+      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-olive/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-olive">
         <ShieldCheck className="h-3 w-3" aria-hidden="true" />
         Admin
       </span>
@@ -89,15 +89,15 @@ export default function AdminShell({
   );
 
   return (
-    <div className="min-h-screen bg-cream">
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-cream-dark/60 bg-cream-light px-5 lg:hidden">
-        {brand}
+    <div className="min-h-screen w-full overflow-x-hidden bg-cream">
+      <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between gap-3 border-b border-cream-dark/60 bg-cream-light px-4 sm:px-5 lg:hidden">
+        <div className="min-w-0 flex-1">{brand}</div>
         <button
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
           aria-label={menuOpen ? "Close menu" : "Open menu"}
           aria-expanded={menuOpen}
-          className="rounded-md p-2 text-charcoal transition-colors hover:bg-cream-dark/50"
+          className="shrink-0 rounded-md p-2 text-charcoal transition-colors hover:bg-cream-dark/50"
         >
           {menuOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
         </button>
@@ -120,7 +120,7 @@ export default function AdminShell({
         </div>
       )}
 
-      <div className="mx-auto flex w-full max-w-7xl flex-col lg:flex-row">
+      <div className="flex min-h-screen w-full flex-col lg:flex-row">
         <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-cream-dark/60 bg-cream-light px-4 py-6 lg:flex">
           <div className="mb-8 px-3">{brand}</div>
           {nav}
@@ -131,7 +131,9 @@ export default function AdminShell({
           )}
         </aside>
 
-        <main className="min-w-0 flex-1 px-5 py-8 sm:px-8 lg:py-10">{children}</main>
+        <main className="min-w-0 flex-1 px-4 pb-24 pt-6 sm:px-6 sm:pb-24 sm:pt-8 lg:px-8 lg:py-10">
+          {children}
+        </main>
       </div>
     </div>
   );

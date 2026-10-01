@@ -154,8 +154,8 @@ export default async function FeedbackAdminPage() {
                       Open page
                     </a>
                   )}
-                  <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
-                    <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Status</span>
+                  <div className="mt-4 border-t border-slate-100 pt-3">
+                    <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-500">Status</span>
                     <FeedbackStatusForm feedbackId={row.id} status={row.status} />
                   </div>
                 </li>
