@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import IconButton from "@/components/ui/icon-button";
+import Button from "@/components/ui/button";
 import ButtonLink from "@/components/ui/button-link";
 import { routes } from "@/lib/site";
 import { NavTextLink, primaryNav } from "@/components/public/nav-links";
+import type { PublicAuthInfo } from "@/lib/auth/session";
 
-export default function MobileNav() {
+export default function MobileNav({ auth }: { auth: PublicAuthInfo }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -84,13 +86,39 @@ export default function MobileNav() {
                   {item.label}
                 </NavTextLink>
               ))}
-              <NavTextLink
-                href={routes.signIn}
-                onClick={close}
-                className="flex min-h-11 items-center px-2 text-base"
-              >
-                Sign In
-              </NavTextLink>
+              {auth.authenticated ? (
+                <>
+                  <NavTextLink
+                    href={auth.dashboardHref}
+                    onClick={close}
+                    className="flex min-h-11 items-center px-2 text-base"
+                  >
+                    {auth.isAdmin ? "Admin" : "Dashboard"}
+                  </NavTextLink>
+                  <form
+                    action={routes.signOut}
+                    method="post"
+                    onSubmit={close}
+                    className="contents"
+                  >
+                    <button
+                      type="submit"
+                      className="flex min-h-11 items-center justify-start gap-2 rounded-md px-2 text-left text-base text-charcoal/80 transition-colors hover:text-charcoal"
+                    >
+                      <LogOut className="h-4 w-4" aria-hidden="true" />
+                      Sign out
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <NavTextLink
+                  href={routes.signIn}
+                  onClick={close}
+                  className="flex min-h-11 items-center px-2 text-base"
+                >
+                  Sign In
+                </NavTextLink>
+              )}
               <ButtonLink
                 href={routes.createResume}
                 variant="primary"
@@ -98,8 +126,22 @@ export default function MobileNav() {
                 className="mt-4 w-full"
                 onClick={close}
               >
-                Create Resume
+                {auth.authenticated ? "Open Builder" : "Create Resume"}
               </ButtonLink>
+              {auth.authenticated ? (
+                <form action={routes.signOut} method="post" className="mt-2">
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    size="lg"
+                    className="w-full"
+                    onClick={close}
+                  >
+                    <LogOut className="h-4 w-4" aria-hidden="true" />
+                    Sign out
+                  </Button>
+                </form>
+              ) : null}
             </nav>
           </div>
         </div>

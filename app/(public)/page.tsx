@@ -6,10 +6,12 @@ import {
   Eye,
   FilePenLine,
   LayoutTemplate,
+  LogOut,
   UserRound,
 } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 import Badge from "@/components/ui/badge";
+import Button from "@/components/ui/button";
 import ButtonLink from "@/components/ui/button-link";
 import FinalCta from "@/components/public/final-cta";
 import ResumePreviewCard from "@/components/public/resume-preview-card";
@@ -17,6 +19,7 @@ import TemplateFrame from "@/components/templates/template-frame";
 import { loadPublishedTemplates } from "@/lib/templates/load-gallery";
 import { NavTextLink } from "@/components/public/nav-links";
 import { faqPreviewItems } from "@/lib/content/faq";
+import { getOptionalAuthInfo, type PublicAuthInfo } from "@/lib/auth/session";
 import {
   containerClass,
   routes,
@@ -107,8 +110,10 @@ const homeFeatures: {
 ];
 
 export default async function HomePage() {
-  // Real published templates for the showcase section (first four by sort order).
-  const { items: featured } = await loadPublishedTemplates(4);
+  const [auth, { items: featured }] = await Promise.all([
+    getOptionalAuthInfo(),
+    loadPublishedTemplates(4),
+  ]);
 
   return (
     <main id="main-content">
@@ -116,8 +121,13 @@ export default async function HomePage() {
         <div className={`${containerClass} pt-16 pb-14 sm:pt-24 sm:pb-20`}>
           <div className="flex flex-col items-start gap-10 lg:grid lg:grid-cols-12 lg:gap-16">
             <div className="w-full lg:col-span-7">
-              <div className="mb-6">
+              <div className="mb-6 flex flex-wrap items-center gap-3">
                 <Badge variant="default">Editorial design, built for careers.</Badge>
+                {auth.authenticated && (
+                  <Badge variant="default" className="bg-olive/15 text-olive">
+                    {auth.isAdmin ? "Signed in as Admin" : `Signed in${auth.fullName ? ` · ${auth.fullName}` : ""}`}
+                  </Badge>
+                )}
               </div>
               <h1 className="font-serif text-4xl font-medium leading-[1.05] tracking-tight text-charcoal sm:text-5xl md:text-6xl">
                 {SITE_TAGLINE}
@@ -127,14 +137,7 @@ export default async function HomePage() {
                 editing experience. Write in your own voice. Adjust the layout
                 when you need to. Download when it is ready.
               </p>
-              <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-                <ButtonLink href={routes.createResume} variant="primary" size="lg">
-                  Create Resume
-                </ButtonLink>
-                <ButtonLink href={routes.templates} variant="outline" size="lg">
-                  Explore Templates
-                </ButtonLink>
-              </div>
+              <HeroActions auth={auth} />
             </div>
             <div className="w-full lg:col-span-5">
               <ResumePreviewCard />
@@ -352,9 +355,42 @@ export default async function HomePage() {
 
       <FinalCta
         id="create-resume"
+        auth={auth}
         title="Ready when you are."
         description="Open the resume flow and start writing. Sign in stays available in the corner — it is not the path you have to take first."
       />
     </main>
+  );
+}
+
+function HeroActions({ auth }: { auth: PublicAuthInfo }) {
+  if (auth.authenticated) {
+    return (
+      <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+        <ButtonLink href={auth.dashboardHref} variant="primary" size="lg">
+          {auth.isAdmin ? "Go to Admin" : "Go to Dashboard"}
+        </ButtonLink>
+        <ButtonLink href={routes.createResume} variant="outline" size="lg">
+          Open Builder
+        </ButtonLink>
+        <form action={routes.signOut} method="post">
+          <Button variant="outline" size="lg">
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+            Sign out
+          </Button>
+        </form>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+      <ButtonLink href={routes.createResume} variant="primary" size="lg">
+        Create Resume
+      </ButtonLink>
+      <ButtonLink href={routes.templates} variant="outline" size="lg">
+        Explore Templates
+      </ButtonLink>
+    </div>
   );
 }

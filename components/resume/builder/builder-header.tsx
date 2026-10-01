@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, LayoutTemplate, Loader2 } from "lucide-react";
 import DownloadButton from "@/components/resume/builder/download-button";
 import { useResumeBuilder, type PersistenceMode, type SaveStatus } from "@/components/resume/builder/resume-builder-context";
+import Button from "@/components/ui/button";
 
 export default function BuilderHeader() {
   const {
@@ -15,18 +16,21 @@ export default function BuilderHeader() {
     retrySave,
     loadFailed,
     retryLoad,
+    templatesStatus,
+    openTemplatesDialog,
   } = useResumeBuilder();
 
-  const backHref = persistenceMode === "authenticated" ? "/dashboard" : "/";
-  const backLabel = persistenceMode === "authenticated" ? "Dashboard" : "Home";
+  const backHref = persistenceMode === "authenticated" ? "/dashboard" : "/templates";
+  const backLabel = persistenceMode === "authenticated" ? "Dashboard" : "Templates";
 
   return (
-    <header className="border-b border-cream-dark/60 bg-cream-light">
+    <header className="w-full border-b border-cream-dark/60 bg-cream-light">
       <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-3 sm:gap-4 sm:px-8 sm:py-4">
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           <Link
             href={backHref}
             className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-charcoal/65 transition-colors hover:bg-cream-dark/50 hover:text-charcoal"
+            title={backLabel}
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             <span className="hidden sm:inline">{backLabel}</span>
@@ -64,6 +68,17 @@ export default function BuilderHeader() {
               onRetry={retrySave}
             />
           )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={openTemplatesDialog}
+            disabled={templatesStatus !== "ready"}
+            title="Browse and switch templates"
+          >
+            <LayoutTemplate className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Templates</span>
+          </Button>
           <DownloadButton />
         </div>
       </div>

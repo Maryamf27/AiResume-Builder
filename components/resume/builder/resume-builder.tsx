@@ -11,6 +11,7 @@ import GuestImportBanner from "@/components/resume/builder/guest-import-banner";
 import GuestNotice from "@/components/resume/builder/guest-notice";
 import ActiveSectionForm from "@/components/resume/builder/active-section-form";
 import PreviewPane from "@/components/resume/builder/preview-pane";
+import TemplatesDialog from "@/components/resume/builder/templates-dialog";
 
 export default function ResumeBuilder({
   resumeId,
@@ -36,8 +37,9 @@ function ResumeBuilderShell() {
   const [mobileView, setMobileView] = useState<"edit" | "preview">("edit");
 
   return (
-    <div className="flex min-h-svh flex-col overflow-x-hidden bg-cream">
+    <div className="flex min-h-svh w-full flex-col overflow-x-hidden bg-cream">
       <BuilderHeader />
+      <TemplatesDialog />
 
       <div className="mx-auto w-full max-w-7xl flex-1 overflow-x-hidden px-5 py-6 sm:px-8 sm:py-8">
         <button

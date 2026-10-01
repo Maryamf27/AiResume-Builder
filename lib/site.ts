@@ -19,6 +19,8 @@ export const routes = {
   terms: "/terms",
   blog: "/blog",
   signIn: "/auth/login",
+  signUp: "/auth/signup",
+  signOut: "/auth/signout",
   createResume: "/builder",
   reportProblem: "/contact#report",
 } as const;

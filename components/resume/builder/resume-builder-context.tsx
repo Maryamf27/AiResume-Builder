@@ -36,6 +36,7 @@ import type { PublishedTemplate } from "@/lib/templates/types";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 export type PersistenceMode = "guest" | "authenticated";
+export type TemplatesDialogState = "closed" | "open";
 
 const AUTOSAVE_DEBOUNCE_MS = 800;
 
@@ -63,6 +64,9 @@ interface ResumeBuilderContextValue {
   templatesStatus: "loading" | "ready" | "error";
   selectedTemplate: PublishedTemplate | null;
   selectTemplate: (id: string) => void;
+  templatesDialogOpen: boolean;
+  openTemplatesDialog: () => void;
+  closeTemplatesDialog: () => void;
 
   activeSection: ResumeSectionId;
   setActiveSection: (section: ResumeSectionId) => void;
@@ -140,6 +144,9 @@ export function ResumeBuilderProvider({
 
   const [templates, setTemplates] = useState<PublishedTemplate[]>([]);
   const [templatesStatus, setTemplatesStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [templatesDialogOpen, setTemplatesDialogOpen] = useState(false);
+  const openTemplatesDialog = useCallback(() => setTemplatesDialogOpen(true), []);
+  const closeTemplatesDialog = useCallback(() => setTemplatesDialogOpen(false), []);
 
   const recordIdRef = useRef<string>(createId());
   const createdAtRef = useRef<string>(new Date().toISOString());
@@ -698,6 +705,9 @@ export function ResumeBuilderProvider({
     templatesStatus,
     selectedTemplate,
     selectTemplate,
+    templatesDialogOpen,
+    openTemplatesDialog,
+    closeTemplatesDialog,
     activeSection,
     setActiveSection,
     updatePersonal,
