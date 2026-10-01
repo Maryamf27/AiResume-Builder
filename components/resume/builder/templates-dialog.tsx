@@ -100,70 +100,72 @@ export default function TemplatesDialog() {
           </p>
         ) : (
           <>
-            <ul className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {templates.map((t) => {
-                const isCurrent = t.id === selectedTemplate?.id;
-                return (
-                  <li
-                    key={t.id}
-                    className="flex flex-col overflow-hidden rounded-lg border border-cream-dark/60 bg-cream"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setPreviewing(t)}
-                      aria-label={`Preview the ${t.name} template`}
-                      className="block w-full bg-cream-light p-3 text-left transition-colors hover:bg-cream-dark/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive-light"
+            <div className="mt-4 max-h-[70vh] min-w-0 overflow-y-auto overflow-x-hidden pr-1 sm:pr-2">
+              <ul className="w-full min-w-0 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {templates.map((t) => {
+                  const isCurrent = t.id === selectedTemplate?.id;
+                  return (
+                    <li
+                      key={t.id}
+                      className="flex flex-col min-w-0 overflow-hidden rounded-lg border border-cream-dark/60 bg-cream"
                     >
-                      <div className="pointer-events-none aspect-794/1123 overflow-hidden rounded-sm border border-cream-dark bg-white">
-                        <SampleThumbnail template={t} />
-                      </div>
-                    </button>
-                    <div className="flex flex-1 flex-col border-t border-cream-dark/60 px-4 py-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <h3 className="font-serif text-lg text-charcoal">{t.name}</h3>
-                        {t.category && (
-                          <Badge className="shrink-0">{t.category}</Badge>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewing(t)}
+                        aria-label={`Preview the ${t.name} template`}
+                        className="block w-full bg-cream-light p-3 text-left transition-colors hover:bg-cream-dark/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive-light"
+                      >
+                        <div className="pointer-events-none aspect-794/1123 overflow-hidden rounded-sm border border-cream-dark bg-white">
+                          <SampleThumbnail template={t} />
+                        </div>
+                      </button>
+                      <div className="flex flex-1 flex-col border-t border-cream-dark/60 px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <h3 className="font-serif text-lg text-charcoal">{t.name}</h3>
+                          {t.category && (
+                            <Badge className="shrink-0">{t.category}</Badge>
+                          )}
+                        </div>
+                        {t.description && (
+                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-charcoal/65">
+                            {t.description}
+                          </p>
                         )}
+                        <div className="mt-auto flex flex-wrap items-center gap-2 pt-3">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPreviewing(t)}
+                          >
+                            <Eye className="h-4 w-4" aria-hidden="true" />
+                            Preview
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => selectTemplate(t.id)}
+                            className={cn(
+                              isCurrent &&
+                                "cursor-default border border-olive/40 bg-olive/10 text-olive hover:bg-olive/15"
+                            )}
+                            disabled={isCurrent}
+                          >
+                            {isCurrent ? (
+                              <>
+                                <Check className="h-4 w-4" aria-hidden="true" />
+                                In use
+                              </>
+                            ) : (
+                              "Use Template"
+                            )}
+                          </Button>
+                        </div>
                       </div>
-                      {t.description && (
-                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-charcoal/65">
-                          {t.description}
-                        </p>
-                      )}
-                      <div className="mt-auto flex flex-wrap items-center gap-2 pt-3">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setPreviewing(t)}
-                        >
-                          <Eye className="h-4 w-4" aria-hidden="true" />
-                          Preview
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => selectTemplate(t.id)}
-                          className={cn(
-                            isCurrent &&
-                              "cursor-default border border-olive/40 bg-olive/10 text-olive hover:bg-olive/15"
-                          )}
-                          disabled={isCurrent}
-                        >
-                          {isCurrent ? (
-                            <>
-                              <Check className="h-4 w-4" aria-hidden="true" />
-                              In use
-                            </>
-                          ) : (
-                            "Use Template"
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
             <div className="mt-6 flex justify-end">
               <Button variant="ghost" onClick={closeTemplatesDialog}>
                 Close

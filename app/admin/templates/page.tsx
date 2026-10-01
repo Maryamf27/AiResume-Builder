@@ -19,8 +19,8 @@ export default async function AdminTemplatesPage() {
     .order("created_at", { ascending: true });
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between gap-4">
+    <div className="w-full min-w-0">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-serif text-2xl text-charcoal sm:text-3xl">Templates</h1>
           <p className="mt-1 text-sm text-charcoal/65">
@@ -45,13 +45,13 @@ export default async function AdminTemplatesPage() {
         </div>
       ) : (
         <>
-          <ul className="space-y-3 xl:hidden">
+          <ul className="w-full min-w-0 space-y-3 xl:hidden">
             {templates?.map((t) => (
-              <li key={t.id} className="rounded-xl border border-cream-dark bg-cream-light p-4 shadow-sm">
+              <li key={t.id} className="w-full min-w-0 rounded-xl border border-cream-dark bg-cream-light p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
                     <TemplateThumbnail name={t.name} thumbnailUrl={t.thumbnail_url} />
-                    <h2 className="wrap-break-word text-sm font-semibold text-slate-900">{t.name}</h2>
+                    <h2 className="wrap-break-word min-w-0 flex-1 text-sm font-semibold text-slate-900">{t.name}</h2>
                   </div>
                   <span
                     className={
@@ -89,8 +89,8 @@ export default async function AdminTemplatesPage() {
             ))}
           </ul>
 
-          <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm xl:block">
-          <table className="w-full min-w-230 table-fixed text-left text-xs 2xl:text-sm">
+          <div className="hidden w-full min-w-0 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm xl:block">
+          <table className="min-w-230 w-full table-fixed text-left text-xs 2xl:text-sm">
             <colgroup>
               <col className="w-[8%]" />
               <col className="w-[24%]" />

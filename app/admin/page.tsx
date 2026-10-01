@@ -119,7 +119,7 @@ export default async function AdminOverviewPage() {
             <p className="py-6 text-center text-sm text-charcoal/55">No activity data yet.</p>
           ) : (
             <div className="overflow-x-auto">
-              <div className="flex h-44 min-w-[420px] items-end gap-1.5 sm:min-w-full">
+              <div className="flex h-44 min-w-105 items-end gap-1.5 sm:min-w-full">
                 {daily.map((d) => (
                   <div key={d.day} className="flex h-full flex-1 flex-col justify-end" title={`${shortDay(d.day)} — ${d.downloads} downloads, ${d.selections} selections, ${d.signups} signups`}>
                     <div className="flex flex-1 items-end justify-center gap-0.5">
