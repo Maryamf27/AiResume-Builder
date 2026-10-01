@@ -100,7 +100,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      <div className="mx-auto flex w-full max-w-6xl">
+      <div className="mx-auto flex w-full max-w-6xl flex-col lg:flex-row">
         {/* Desktop sidebar */}
         <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-cream-dark/60 bg-cream-light px-4 py-6 lg:flex">
           <Link href="/dashboard" className="mb-8 flex items-baseline gap-2 px-3">

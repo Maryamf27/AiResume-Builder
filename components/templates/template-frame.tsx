@@ -58,7 +58,6 @@ export default function TemplateFrame({
         scrolling="no"
         style={{
           width: A4_WIDTH_PX,
-          maxWidth: "100%",
           height,
           border: 0,
           transform: `scale(${scale})`,

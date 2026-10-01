@@ -36,7 +36,7 @@ function ResumeBuilderShell() {
   const [mobileView, setMobileView] = useState<"edit" | "preview">("edit");
 
   return (
-    <div className="flex min-h-[100svh] flex-col overflow-x-hidden bg-cream">
+    <div className="flex min-h-svh flex-col overflow-x-hidden bg-cream">
       <BuilderHeader />
 
       <div className="mx-auto w-full max-w-7xl flex-1 overflow-x-hidden px-5 py-6 sm:px-8 sm:py-8">

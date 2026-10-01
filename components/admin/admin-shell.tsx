@@ -104,10 +104,23 @@ export default function AdminShell({
       </header>
 
       {menuOpen && (
-        <div className="border-b border-cream-dark/60 bg-cream-light px-5 py-4 lg:hidden">{nav}</div>
+        <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-white px-5 py-4 lg:hidden">
+          <div className="sticky top-0 mb-4 flex items-center justify-between border-b border-slate-200 bg-white py-2">
+            {brand}
+            <button
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              aria-label="Close menu"
+              className="rounded-md p-2 text-charcoal transition-colors hover:bg-cream-dark/50"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </div>
+          {nav}
+        </div>
       )}
 
-      <div className="mx-auto flex w-full max-w-7xl">
+      <div className="mx-auto flex w-full max-w-7xl flex-col lg:flex-row">
         <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-cream-dark/60 bg-cream-light px-4 py-6 lg:flex">
           <div className="mb-8 px-3">{brand}</div>
           {nav}

@@ -80,7 +80,7 @@ export default function TemplateGallery({
               className="block w-full bg-cream-light p-4 text-left transition-colors hover:bg-cream-dark/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive-light"
             >
               {/* First page only; the frame itself is inert so the button gets the click. */}
-              <div className="pointer-events-none aspect-[794/1123] overflow-hidden rounded-sm border border-cream-dark bg-white">
+              <div className="pointer-events-none aspect-794/1123 overflow-hidden rounded-sm border border-cream-dark bg-white">
                 <TemplateFrame
                   srcDoc={t.srcDoc}
                   title={`${t.name} template preview`}
