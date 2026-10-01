@@ -24,10 +24,10 @@ export default function PreviewPane() {
   }, [selectedTemplate, deferredData]);
 
   return (
-    <div>
+    <div className="w-full min-w-0 overflow-x-hidden">
       <TemplatePicker />
       {/* If no template is published (or one fails to render), fall back to the built-in layout. */}
-      {doc ? <TemplateFrame srcDoc={doc} title="Resume preview" /> : <ResumePreview />}
+      {doc ? <TemplateFrame srcDoc={doc} title="Resume preview" className="w-full max-w-full" /> : <ResumePreview />}
     </div>
   );
 }

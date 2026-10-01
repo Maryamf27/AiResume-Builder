@@ -27,7 +27,7 @@ import { createEmptyResumeData, DEFAULT_RESUME_TITLE, RESUME_SCHEMA_VERSION } fr
 import { calculateCompleteness } from "@/lib/resume/completeness";
 import { createId } from "@/lib/resume/id";
 import { createClient } from "@/lib/supabase/client";
-import { hasResumeContent } from "@/lib/resume/guest-import";
+import { hasResumeContent, shouldPersistResumeDraft } from "@/lib/resume/guest-import";
 import { clearGuestResume, loadGuestResume } from "@/lib/resume/storage";
 import { createGuestPersistenceAdapter } from "@/lib/resume/persistence/guest-adapter";
 import { createSupabasePersistenceAdapter } from "@/lib/resume/persistence/supabase-adapter";
@@ -146,10 +146,18 @@ export function ResumeBuilderProvider({
   const hasSyncedAfterLoadRef = useRef(false);
   const bootstrapRunRef = useRef(0);
   const persistedRef = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestDraftRef = useRef<{
+    resumeData: ResumeData;
+    title: string;
+    hydrated: boolean;
+    persistenceMode: PersistenceMode;
+    userId: string | null;
+    adapter: ResumePersistenceAdapter;
+    buildRecord: () => ResumeRecord;
+  } | null>(null);
 
-  const bootstrap = useCallback(async () => {
-    const runId = ++bootstrapRunRef.current;
-
+  const bootstrap = useCallback(async (runId = ++bootstrapRunRef.current) => {
     let user: { id: string } | null = null;
     try {
       const supabase = createClient();
@@ -235,11 +243,10 @@ export function ResumeBuilderProvider({
   useEffect(() => {
     // Defer so the async bootstrap (and its setState calls) stays out of the
     // effect body.
-    const timer = setTimeout(() => void bootstrap(), 0);
-    return () => {
-      clearTimeout(timer);
-      bootstrapRunRef.current++;
-    };
+    const timer = setTimeout(() => {
+      void bootstrap(++bootstrapRunRef.current);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [bootstrap]);
 
   // Published templates are readable by everyone (guests included) through RLS.
@@ -293,7 +300,24 @@ export function ResumeBuilderProvider({
     [userId, title, resumeData]
   );
 
+  useEffect(() => {
+    latestDraftRef.current = {
+      resumeData,
+      title,
+      hydrated,
+      persistenceMode,
+      userId,
+      adapter,
+      buildRecord,
+    };
+  }, [adapter, buildRecord, hydrated, persistenceMode, resumeData, title, userId]);
+
   const runSave = useCallback(() => {
+    if (!shouldPersistResumeDraft(resumeData, title, persistedRef.current)) {
+      setSaveStatus("idle");
+      return;
+    }
+
     setSaveStatus("saving");
     setSaveError(null);
     adapter.save(buildRecord()).then((result) => {
@@ -301,8 +325,6 @@ export function ResumeBuilderProvider({
         if (adapter.mode === "authenticated") {
           const firstSave = !persistedRef.current;
           persistedRef.current = true;
-          // A new draft (?new=1) now exists in the database. Point the URL at
-          // it so a refresh reopens this resume instead of starting a blank one.
           if (firstSave && startNew && typeof window !== "undefined") {
             window.history.replaceState(null, "", `/builder?id=${recordIdRef.current}`);
           }
@@ -314,7 +336,8 @@ export function ResumeBuilderProvider({
         setSaveError(result.error);
       }
     });
-  }, [adapter, buildRecord, startNew]);
+  }, [adapter, buildRecord, resumeData, startNew, title]);
+
   useEffect(() => {
     if (!hydrated) return;
     if (!hasSyncedAfterLoadRef.current) {
@@ -322,24 +345,45 @@ export function ResumeBuilderProvider({
       return;
     }
 
-    // Don't create an account resume until there is something in it. Opening
-    // the builder (or picking a template) and leaving must not leave an empty
-    // "My Resume" behind. Guests only write to this device, so they're unaffected.
-    if (
-      persistenceMode === "authenticated" &&
-      !persistedRef.current &&
-      !hasResumeContent(resumeData) &&
-      title.trim() === DEFAULT_RESUME_TITLE
-    ) {
+    const shouldSave = shouldPersistResumeDraft(resumeData, title, persistedRef.current);
+    if (!shouldSave) {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
       setSaveStatus("idle");
       return;
     }
 
-    setSaveStatus("saving");
-    setSaveError(null);
-    const timeout = setTimeout(runSave, AUTOSAVE_DEBOUNCE_MS);
-    return () => clearTimeout(timeout);
-  }, [resumeData, title, hydrated, persistenceMode]);
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+
+    saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null;
+      runSave();
+    }, AUTOSAVE_DEBOUNCE_MS);
+
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+    };
+  }, [resumeData, title, hydrated, runSave]);
+
+  useEffect(() => {
+    return () => {
+      const draft = latestDraftRef.current;
+      if (!draft || !draft.hydrated) return;
+      if (!shouldPersistResumeDraft(draft.resumeData, draft.title, persistedRef.current)) return;
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      void draft.adapter.save(draft.buildRecord());
+    };
+  }, []);
 
   const importGuestResume = useCallback(async () => {
     if (!pendingGuest || !userId) return;
@@ -593,6 +637,9 @@ export function ResumeBuilderProvider({
       if (id === resumeData.templateId) return;
       setResumeData((prev) => ({ ...prev, templateId: id }));
 
+      const isPublishedSelection = templates.some((template) => template.id === id);
+      if (!isPublishedSelection) return;
+
       // Usage analytics: fire-and-forget, never blocks or breaks the builder.
       void createClient()
         .from("template_events")
@@ -601,7 +648,7 @@ export function ResumeBuilderProvider({
           if (error) console.warn("Could not record template selection:", error.message);
         });
     },
-    [resumeData.templateId, userId]
+    [resumeData.templateId, templates, userId]
   );
 
   // "Use template" on /templates lands here with ?template=<slug>. Apply it once

@@ -8,6 +8,7 @@ import {
   LayoutTemplate,
   LogOut,
   Menu,
+  MessageSquareText,
   ShieldCheck,
   Users,
   X,
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { href: "/admin", label: "Overview", icon: BarChart3, exact: true },
   { href: "/admin/users", label: "Users", icon: Users, exact: false },
   { href: "/admin/templates", label: "Templates", icon: LayoutTemplate, exact: false },
+  { href: "/admin/feedback", label: "Feedback", icon: MessageSquareText, exact: false },
 ] as const;
 
 export default function AdminShell({

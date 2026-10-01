@@ -45,8 +45,8 @@ export default function TemplateFrame({
   return (
     <div
       ref={wrapRef}
-      className={cn("w-full overflow-hidden rounded-sm border border-cream-dark bg-white shadow-sm", className)}
-      style={{ height: height * scale }}
+      className={cn("w-full max-w-full overflow-hidden rounded-sm border border-cream-dark bg-white shadow-sm", className)}
+      style={{ height: height * scale, maxWidth: "100%" }}
     >
       <iframe
         ref={frameRef}
@@ -58,6 +58,7 @@ export default function TemplateFrame({
         scrolling="no"
         style={{
           width: A4_WIDTH_PX,
+          maxWidth: "100%",
           height,
           border: 0,
           transform: `scale(${scale})`,

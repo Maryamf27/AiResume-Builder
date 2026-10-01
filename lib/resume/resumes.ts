@@ -54,15 +54,24 @@ export async function deleteResume(id: string): Promise<string | null> {
 }
 
 /** Records a template usage event. Fire-and-forget; never blocks the UI. */
-export function recordTemplateEvent(
+export async function recordTemplateEvent(
   templateId: string,
   userId: string | null,
   eventType: "selected" | "downloaded"
-): void {
-  void createClient()
+): Promise<void> {
+  const supabase = createClient();
+  const { data: template } = await supabase
+    .from("templates")
+    .select("id")
+    .eq("id", templateId)
+    .eq("is_published", true)
+    .maybeSingle();
+
+  if (!template) return;
+
+  const { error } = await supabase
     .from("template_events")
-    .insert({ template_id: templateId, user_id: userId, event_type: eventType })
-    .then(({ error }) => {
-      if (error) console.warn("Could not record template event:", error.message);
-    });
+    .insert({ template_id: templateId, user_id: userId, event_type: eventType });
+
+  if (error) console.warn("Could not record template event:", error.message);
 }

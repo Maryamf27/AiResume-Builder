@@ -36,10 +36,10 @@ function ResumeBuilderShell() {
   const [mobileView, setMobileView] = useState<"edit" | "preview">("edit");
 
   return (
-    <div className="flex min-h-screen flex-col bg-cream">
+    <div className="flex min-h-[100svh] flex-col overflow-x-hidden bg-cream">
       <BuilderHeader />
 
-      <div className="mx-auto w-full max-w-7xl flex-1 px-5 py-6 sm:px-8 sm:py-8">
+      <div className="mx-auto w-full max-w-7xl flex-1 overflow-x-hidden px-5 py-6 sm:px-8 sm:py-8">
         <button
           type="button"
           onClick={() => setMobileView((v) => (v === "edit" ? "preview" : "edit"))}
@@ -60,10 +60,10 @@ function ResumeBuilderShell() {
 
         <GuestImportBanner />
 
-        <div className="grid gap-8 lg:grid-cols-[460px_minmax(0,1fr)] xl:grid-cols-[520px_minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-8 lg:grid-cols-[460px_minmax(0,1fr)] xl:grid-cols-[520px_minmax(0,1fr)]">
           <div
             className={cn(
-              "flex flex-col gap-6",
+              "flex min-w-0 flex-col gap-6 overflow-x-hidden",
               mobileView === "preview" ? "hidden lg:flex" : "flex"
             )}
           >
@@ -77,7 +77,7 @@ function ResumeBuilderShell() {
             </div>
           </div>
 
-          <div className={cn(mobileView === "edit" ? "hidden lg:block" : "block")}>
+          <div className={cn("min-w-0 overflow-x-hidden", mobileView === "edit" ? "hidden lg:block" : "block")}>
             <PreviewPane />
           </div>
         </div>
