@@ -24,7 +24,7 @@ import {
   renameResume,
   type ResumeListItem,
 } from "@/lib/resume/resumes";
-import { buildResumeDocument, printResumeDocument, resumePdfFilename } from "@/lib/resume/pdf";
+import { buildResumeDocument, downloadResumePdf, resumePdfFilename } from "@/lib/resume/pdf";
 import { createClient } from "@/lib/supabase/client";
 import type { PublishedTemplate } from "@/lib/templates/types";
 
@@ -111,8 +111,8 @@ export default function ResumeList({
       const template = templateFor(resume);
       const filename = resumePdfFilename(resume.title, resume.data);
       const doc = buildResumeDocument(template, resume.data, filename);
-      printResumeDocument(doc);
-      // Only count the download once the print window actually opened.
+      await downloadResumePdf(doc, filename);
+      // Only count a download after the PDF has been generated successfully.
       if (template) recordTemplateEvent(template.id, userId, "downloaded");
     } catch (err) {
       setActionError(

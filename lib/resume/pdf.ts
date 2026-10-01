@@ -38,32 +38,29 @@ export function buildResumeDocument(
   );
 }
 
-export function printResumeDocument(doc: string): void {
-  const win = window.open("", "_blank");
-  if (!win) {
-    throw new Error(
-      "Your browser blocked the download window. Please allow pop-ups for this site and try again."
-    );
-  }
-  win.document.open();
-  win.document.write(doc);
-  win.document.close();
+export async function downloadResumePdf(doc: string, filename: string): Promise<void> {
+  const response = await fetch("/api/resume-pdf", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ document: doc, filename }),
+  });
 
-  const triggerPrint = () => {
-    try {
-      win.focus();
-      win.print();
-    } catch {
-      // The window may have been closed before printing; nothing to do.
-    }
-  };
-
-  if (win.document.readyState === "complete") {
-    // Give the renderer a beat to lay out the document.
-    setTimeout(triggerPrint, 150);
-  } else {
-    win.addEventListener("load", () => setTimeout(triggerPrint, 150));
-    // Fallback in case the load event was missed.
-    setTimeout(triggerPrint, 1500);
+  if (!response.ok) {
+    const result: unknown = await response.json().catch(() => null);
+    const message =
+      result && typeof result === "object" && "error" in result && typeof result.error === "string"
+        ? result.error
+        : "Couldn't generate the PDF. Please try again.";
+    throw new Error(message);
   }
+
+  const objectUrl = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = filename;
+  link.hidden = true;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 }

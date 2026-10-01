@@ -65,7 +65,7 @@ flowchart LR
 1. **Start as a guest.** Open `/builder` and begin typing. Nothing to sign up for.
 2. **Build.** Work through Personal, Summary, Experience, Education, Skills, Projects, Certifications and Languages while the preview updates live.
 3. **Choose a template.** Ten layouts, switchable at any time. Your content never changes, only the design.
-4. **Download.** The PDF opens through the browser's print dialog, named after you (for example `jane-doe-resume.pdf`).
+4. **Download.** A text-selectable PDF is generated from the same A4 template document and downloads directly (for example `jane-doe-resume.pdf`).
 5. **Sign in to keep it.** A guest resume is offered for import when you sign in, so nothing is lost.
 
 ### The signed-in dashboard
@@ -126,7 +126,7 @@ Admins land in their own panel and are redirected away from the user dashboard. 
 | **Supabase clients** | `@supabase/ssr`, `@supabase/supabase-js` | Cookie-based sessions on server and browser |
 | **Templating** | [Mustache](https://github.com/janl/mustache.js) | Logic-less resume templates, HTML-escaped by default |
 | **Sanitising** | `sanitize-html` | Cleans admin-authored template markup |
-| **PDF export** | Browser print pipeline | Paper-accurate PDFs with no server rendering cost |
+| **PDF export** | Headless Chromium via Puppeteer | Direct A4 PDF downloads with selectable text and template styling |
 | **Tooling** | ESLint 9, `eslint-config-next` | Linting |
 | **Hosting** | [Vercel](https://vercel.com) (recommended) | Deployment |
 
@@ -170,7 +170,7 @@ flowchart LR
     T["Template<br/>HTML + CSS in the database"] --> M["Mustache render"]
     R["Resume data<br/>JSON"] --> V["View model"] --> M
     M --> S["Sandboxed iframe<br/>no scripts allowed"]
-    M --> P["Print window<br/>Save as PDF"]
+    M --> P["Headless Chromium<br/>selectable PDF download"]
 ```
 
 Resume text is always HTML-escaped. Templates may not use unescaped tags, custom delimiters or partials, and previews run in an iframe with scripts disabled, so neither a template nor a resume can inject executable code.

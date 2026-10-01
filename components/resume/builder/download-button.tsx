@@ -13,9 +13,9 @@ export default function DownloadButton() {
   const { download, preparing, error } = useResumeDownload();
   const [showGuestPrompt, setShowGuestPrompt] = useState(false);
 
-  function handleDownload() {
-    const opened = download();
-    if (opened && persistenceMode === "guest") {
+  async function handleDownload() {
+    const downloaded = await download();
+    if (downloaded && persistenceMode === "guest") {
       setShowGuestPrompt(true);
     }
   }
@@ -26,7 +26,7 @@ export default function DownloadButton() {
         type="button"
         variant="outline-olive"
         size="sm"
-        onClick={handleDownload}
+        onClick={() => void handleDownload()}
         disabled={preparing}
       >
         {preparing ? (
