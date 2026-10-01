@@ -179,8 +179,15 @@ export function ResumeBuilderProvider({
       : createGuestPersistenceAdapter();
 
     let stored: ResumeRecord | null;
+    let prefill: ResumeRecord | null = null;
     try {
-      stored = user && startNew && !resumeId ? null : await loadAdapter.load();
+      const latest = await loadAdapter.load();
+      if (user && startNew && !resumeId) {
+        prefill = latest;
+        stored = null;
+      } else {
+        stored = latest;
+      }
     } catch (error) {
       if (runId !== bootstrapRunRef.current) return;
       console.error("Resume load failed:", error);
@@ -237,6 +244,9 @@ export function ResumeBuilderProvider({
       recordIdRef.current = stored.id;
       createdAtRef.current = stored.createdAt;
     } else {
+      persistedRef.current = false;
+      setResumeData(prefill && hasResumeContent(prefill.data) ? prefill.data : createEmptyResumeData());
+      setTitle(DEFAULT_RESUME_TITLE);
       recordIdRef.current = createId();
       createdAtRef.current = new Date().toISOString();
     }
