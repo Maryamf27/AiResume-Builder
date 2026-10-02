@@ -95,7 +95,7 @@ export default function ResumeList({
     try {
       const template =
         templates.find((t) => t.id === previewing.data?.templateId) ?? templates[0] ?? null;
-      const filename = resumePdfFilename(previewing.title, previewing.data);
+      const filename = resumePdfFilename(previewing.title);
       return { srcDoc: buildResumeDocument(template, previewing.data, filename), error: null };
     } catch (err) {
       console.error("Resume preview failed:", err);
@@ -109,7 +109,7 @@ export default function ResumeList({
     setActionError(null);
     try {
       const template = templateFor(resume);
-      const filename = resumePdfFilename(resume.title, resume.data);
+      const filename = resumePdfFilename(resume.title);
       const doc = buildResumeDocument(template, resume.data, filename);
       await downloadResumePdf(doc, filename);
       // Only count a download after the PDF has been generated successfully.

@@ -70,7 +70,7 @@ export default async function DashboardPage() {
             Pick up where you left off, or start something new.
           </p>
         </div>
-        <CreateResumeButton />
+        <CreateResumeButton hasSavedResume={total > 0} />
       </div>
 
       {/* At-a-glance numbers */}

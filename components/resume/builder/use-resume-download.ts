@@ -15,14 +15,15 @@ export function useResumeDownload() {
     setPreparing(true);
     setError(null);
     try {
-      const filename = resumePdfFilename(title, resumeData);
+      const filename = resumePdfFilename(title);
       const doc = buildResumeDocument(selectedTemplate, resumeData, filename);
-      await downloadResumePdf(doc, filename);
+      await downloadResumePdf(doc, filename, true);
       if (selectedTemplate) {
         recordTemplateEvent(selectedTemplate.id, userId, "downloaded");
       }
       return true;
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return false;
       setError(
         err instanceof Error ? err.message : "Couldn't prepare the PDF. Please try again."
       );

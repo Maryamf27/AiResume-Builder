@@ -1,12 +1,15 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, ArrowLeft, CheckCircle2, LayoutTemplate, Loader2 } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, LayoutTemplate, Loader2, Pencil } from "lucide-react";
 import DownloadButton from "@/components/resume/builder/download-button";
 import { useResumeBuilder, type PersistenceMode, type SaveStatus } from "@/components/resume/builder/resume-builder-context";
 import Button from "@/components/ui/button";
 
 export default function BuilderHeader() {
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
   const {
     title,
     updateTitle,
@@ -23,6 +26,13 @@ export default function BuilderHeader() {
   const backHref = persistenceMode === "authenticated" ? "/dashboard" : "/templates";
   const backLabel = persistenceMode === "authenticated" ? "Dashboard" : "Templates";
 
+  useEffect(() => {
+    if (isEditingTitle) {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    }
+  }, [isEditingTitle]);
+
   return (
     <header className="w-full border-b border-cream-dark/60 bg-cream-light">
       <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-3 sm:gap-4 sm:px-8 sm:py-4">
@@ -35,14 +45,40 @@ export default function BuilderHeader() {
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             <span className="hidden sm:inline">{backLabel}</span>
           </Link>
-          <input
-            value={title}
-            onChange={(e) => updateTitle(e.target.value)}
-            placeholder="My Resume"
-            maxLength={120}
-            aria-label="Resume title"
-            className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm font-semibold text-charcoal outline-none transition-colors placeholder:text-charcoal/40 hover:border-cream-dark focus:border-olive focus:bg-cream sm:max-w-xs"
-          />
+          <div className="min-w-0 flex-1">
+            {isEditingTitle ? (
+              <input
+                ref={titleInputRef}
+                value={title}
+                onChange={(e) => updateTitle(e.target.value)}
+                onBlur={() => setIsEditingTitle(false)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    event.currentTarget.blur();
+                  }
+                }}
+                placeholder="My Resume"
+                maxLength={120}
+                aria-label="Resume title"
+                className="min-w-0 w-full rounded-md border border-olive bg-cream px-2 py-1.5 text-sm font-semibold text-charcoal outline-none focus-visible:ring-2 focus-visible:ring-olive-light sm:max-w-xs"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsEditingTitle(true)}
+                aria-label="Rename resume title"
+                title="Rename resume title"
+                className="group inline-flex max-w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm font-semibold text-charcoal transition-colors hover:bg-cream-dark/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive-light"
+              >
+                <span className="truncate">{title || "My Resume"}</span>
+                <Pencil
+                  className="h-4 w-4 shrink-0 text-olive transition-colors group-hover:text-olive-dark"
+                  aria-hidden="true"
+                />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">

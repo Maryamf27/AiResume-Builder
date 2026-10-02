@@ -5,20 +5,17 @@ import { renderTemplateDocument } from "@/lib/templates/render";
 import { STARTER_CSS, STARTER_HTML } from "@/lib/templates/starter-template";
 
 
-export function resumePdfFilename(title: string, data: ResumeData): string {
-  const name = [data.personal.firstName, data.personal.lastName]
-    .map((p) => p.trim())
-    .filter(Boolean)
-    .join(" ");
-  const source = name || title || "resume";
+export function resumePdfFilename(title: string): string {
+  const source = title.trim() || "My Resume";
   const slug = source
     .toLowerCase()
     .normalize("NFKD")
     .replace(/[̀-ͯ]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  const base = slug || "resume";
-  return `${base}${name ? "-resume" : ""}.pdf`;
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100)
+    .replace(/-+$/g, "");
+  return `${slug || "my-resume"}.pdf`;
 }
 
 
@@ -38,7 +35,36 @@ export function buildResumeDocument(
   );
 }
 
-export async function downloadResumePdf(doc: string, filename: string): Promise<void> {
+type SaveFileHandle = {
+  createWritable: () => Promise<{
+    write: (data: Blob) => Promise<void>;
+    close: () => Promise<void>;
+  }>;
+};
+
+type SaveFilePickerOptions = {
+  suggestedName: string;
+  types: Array<{
+    description: string;
+    accept: Record<string, string[]>;
+  }>;
+};
+
+export async function downloadResumePdf(
+  doc: string,
+  filename: string,
+  promptForSaveLocation = false
+): Promise<void> {
+  const pickerWindow = window as Window & {
+    showSaveFilePicker?: (options: SaveFilePickerOptions) => Promise<SaveFileHandle>;
+  };
+  const fileHandle = promptForSaveLocation && pickerWindow.showSaveFilePicker
+    ? await pickerWindow.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: "PDF document", accept: { "application/pdf": [".pdf"] } }],
+      })
+    : null;
+
   const response = await fetch("/api/resume-pdf", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -54,7 +80,15 @@ export async function downloadResumePdf(doc: string, filename: string): Promise<
     throw new Error(message);
   }
 
-  const objectUrl = URL.createObjectURL(await response.blob());
+  const pdf = await response.blob();
+  if (fileHandle) {
+    const writable = await fileHandle.createWritable();
+    await writable.write(pdf);
+    await writable.close();
+    return;
+  }
+
+  const objectUrl = URL.createObjectURL(pdf);
   const link = document.createElement("a");
   link.href = objectUrl;
   link.download = filename;

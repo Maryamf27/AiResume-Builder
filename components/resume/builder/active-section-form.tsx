@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import PersonalInfoForm from "@/components/resume/forms/personal-info-form";
 import SummaryForm from "@/components/resume/forms/summary-form";
@@ -46,23 +46,35 @@ export default function ActiveSectionForm() {
   const next = index >= 0 && index < resumeSections.length - 1 ? resumeSections[index + 1] : null;
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const previousSectionRef = useRef(activeSection);
   const [completeOpen, setCompleteOpen] = useState(false);
+
+  useEffect(() => {
+    if (previousSectionRef.current === activeSection) return;
+    previousSectionRef.current = activeSection;
+
+    const frame = requestAnimationFrame(() => {
+      const container = containerRef.current;
+      if (!container) return;
+      container.scrollIntoView({ behavior: "smooth", block: "start" });
+      container.querySelector<HTMLElement>("input, textarea, select")?.focus({
+        preventScroll: true,
+      });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [activeSection]);
 
   function go(id: (typeof resumeSections)[number]["id"]) {
     setActiveSection(id);
-
-    // Wait for the next section's form to render, then bring the form itself
-    // (not the top of the page) into view and focus its first field.
-    requestAnimationFrame(() => {
-      const el = containerRef.current;
-      if (!el) return;
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-      el.querySelector<HTMLElement>("input, textarea, select")?.focus({ preventScroll: true });
-    });
   }
 
   return (
-    <div ref={containerRef} className="flex scroll-mt-24 flex-col gap-8">
+    <div
+      id="active-resume-section"
+      ref={containerRef}
+      className="flex scroll-mt-24 flex-col gap-8"
+    >
       <SectionForm section={activeSection} />
 
       <div className="flex items-center justify-between gap-3 border-t border-cream-dark pt-5">

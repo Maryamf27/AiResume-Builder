@@ -215,6 +215,17 @@ export function ResumeBuilderProvider({
       }
     }
 
+    if (
+      user &&
+      startNew &&
+      !resumeId &&
+      guest &&
+      (!prefill || !hasResumeContent(prefill.data))
+    ) {
+      prefill = guest;
+      guest = null;
+    }
+
     if (user && guest) {
       if (!stored && !(startNew && !resumeId)) {
         const record: ResumeRecord = {
