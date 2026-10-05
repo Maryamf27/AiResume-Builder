@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useRef, useState, type ChangeEvent } from "react";
 import { ArrowLeft, CheckCircle2, FilePlus2, Loader2, Upload } from "lucide-react";
 import Button from "@/components/ui/button";
@@ -10,6 +11,8 @@ import Textarea from "@/components/ui/textarea";
 import { hasGuestResumeToImport } from "@/lib/resume/guest-import";
 import { validateResumeFile } from "@/lib/resume/extraction/validation";
 import type { ResumeExtractionResult } from "@/lib/resume/extraction/types";
+import type { ResumeData } from "@/types/resume";
+import { savePendingImportedResume } from "@/lib/resume/storage";
 
 function isResumeExtractionResult(value: unknown): value is ResumeExtractionResult {
   if (typeof value !== "object" || value === null || !("success" in value)) {
@@ -47,12 +50,14 @@ export default function CreateResumeDialog({
   onClose,
   hasSavedResume,
 }: CreateResumeDialogProps) {
+  const router = useRouter();
   const [step, setStep] = useState<"options" | "saved-info" | "upload">("options");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [extracted, setExtracted] = useState<Extract<ResumeExtractionResult, { success: true }> | null>(null);
-  const [readyForNextPhase, setReadyForNextPhase] = useState(false);
+  const [parsedResume, setParsedResume] = useState<ResumeData | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
   const extractionControllerRef = useRef<AbortController | null>(null);
 
   function resetUploadState() {
@@ -62,7 +67,8 @@ export default function CreateResumeDialog({
     setExtracting(false);
     setUploadError(null);
     setExtracted(null);
-    setReadyForNextPhase(false);
+    setParsedResume(null);
+    setAnalyzing(false);
   }
 
   function closeDialog() {
@@ -74,6 +80,56 @@ export default function CreateResumeDialog({
   function backToOptions() {
     resetUploadState();
     setStep("options");
+  }
+
+  async function handleAnalyzeResume() {
+    if (!extracted) return;
+    setAnalyzing(true);
+    setUploadError(null);
+
+    try {
+      const response = await fetch("/api/ai/parse-resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: extracted.text }),
+      });
+
+      const result: unknown = await response.json().catch(() => null);
+      if (!result || typeof result !== "object" || !("success" in result)) {
+        throw new Error("We couldn't parse this resume. Please try again or enter your information manually.");
+      }
+
+      if (result.success !== true || !("data" in result) || !result.data || typeof result.data !== "object") {
+        throw new Error(
+          result && typeof result === "object" && "error" in result && typeof result.error === "string"
+            ? result.error
+            : "We couldn't parse this resume. Please try again or enter your information manually."
+        );
+      }
+
+      setParsedResume(result.data as ResumeData);
+    } catch (error) {
+      setUploadError(
+        error instanceof Error
+          ? error.message
+          : "We couldn't automatically import this resume. Please try again or enter your information manually."
+      );
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
+  function handleApplyImport() {
+    if (!parsedResume) return;
+
+    const saved = savePendingImportedResume(parsedResume);
+    if (!saved) {
+      setUploadError("We couldn't save the imported resume for the builder. Please try again.");
+      return;
+    }
+
+    closeDialog();
+    router.push("/builder?new=1");
   }
 
   async function extractFile(file: File) {
@@ -128,7 +184,7 @@ export default function CreateResumeDialog({
     setSelectedFile(file);
     setUploadError(null);
     setExtracted(null);
-    setReadyForNextPhase(false);
+    setParsedResume(null);
 
     const validation = validateResumeFile(file);
     if (!validation.valid) {
@@ -164,7 +220,69 @@ export default function CreateResumeDialog({
     >
       {isUploadStep ? (
         <div className="mt-6">
-          {extracted ? (
+          {parsedResume ? (
+            <>
+              <div className="flex items-center gap-2 text-sm font-medium text-olive" role="status">
+                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                Resume imported successfully
+              </div>
+              <p className="mt-3 text-sm text-charcoal/70">
+                AI extracted the following information from your resume.
+              </p>
+
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="rounded border border-olive/20 bg-olive/5 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-charcoal/60">
+                    Personal Information
+                  </p>
+                  <p className="mt-1 text-sm text-charcoal">
+                    {[parsedResume.personal.firstName, parsedResume.personal.lastName, parsedResume.personal.title]
+                      .filter(Boolean)
+                      .join(" ") || "No personal details found"}
+                  </p>
+                  {parsedResume.personal.email && (
+                    <p className="mt-1 text-sm text-charcoal/70">{parsedResume.personal.email}</p>
+                  )}
+                </div>
+
+                {[
+                  { label: "Experience", value: `${parsedResume.experience.length} item(s)` },
+                  { label: "Education", value: `${parsedResume.education.length} item(s)` },
+                  { label: "Skills", value: `${parsedResume.skills.length} item(s)` },
+                  { label: "Projects", value: `${parsedResume.projects.length} item(s)` },
+                  { label: "Certifications", value: `${parsedResume.certifications.length} item(s)` },
+                  { label: "Languages", value: `${parsedResume.languages.length} item(s)` },
+                ].map((section) => (
+                  <div key={section.label} className="rounded border border-charcoal/10 bg-white p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-charcoal/60">
+                      {section.label}
+                    </p>
+                    <p className="mt-1 text-sm text-charcoal">{section.value}</p>
+                  </div>
+                ))}
+                {parsedResume.summary && (
+                  <details className="rounded border border-charcoal/10 bg-white p-3 sm:col-span-2">
+                    <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-charcoal/60">
+                      Summary preview
+                    </summary>
+                    <p className="mt-2 whitespace-pre-wrap wrap-break-word text-sm leading-5 text-charcoal">
+                      {parsedResume.summary}
+                    </p>
+                  </details>
+                )}
+              </div>
+
+              <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button variant="outline" onClick={() => setParsedResume(null)} className="w-full sm:w-auto">
+                  Back
+                </Button>
+                <Button variant="outline" onClick={closeDialog} className="w-full sm:w-auto">
+                  Cancel
+                </Button>
+                <Button onClick={handleApplyImport} className="w-full sm:w-auto">Apply to Resume</Button>
+              </div>
+            </>
+          ) : extracted ? (
             <>
               <div className="flex items-center gap-2 text-sm font-medium text-olive" role="status">
                 <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
@@ -186,17 +304,23 @@ export default function CreateResumeDialog({
                 rows={12}
                 className="max-h-[45vh] min-h-64 overflow-y-auto font-mono text-xs leading-5"
               />
-              {readyForNextPhase && (
-                <p className="mt-3 text-sm text-olive" role="status">
-                  Extracted text is ready for the next step.
+              {analyzing && (
+                <p className="mt-3 flex items-center gap-2 text-sm text-charcoal/70" role="status">
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  AI Analyzing your resume...
+                </p>
+              )}
+              {uploadError && (
+                <p className="mt-3 text-sm text-destructive" role="alert">
+                  {uploadError}
                 </p>
               )}
               <div className="mt-6 flex justify-end gap-2">
                 <Button variant="outline" onClick={closeDialog}>
                   Cancel
                 </Button>
-                <Button onClick={() => setReadyForNextPhase(true)}>
-                  Continue
+                <Button onClick={() => void handleAnalyzeResume()} disabled={analyzing}>
+                  {analyzing ? "Analyzing..." : "Continue"}
                 </Button>
               </div>
             </>

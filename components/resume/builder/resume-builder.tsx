@@ -12,6 +12,8 @@ import GuestNotice from "@/components/resume/builder/guest-notice";
 import ActiveSectionForm from "@/components/resume/builder/active-section-form";
 import PreviewPane from "@/components/resume/builder/preview-pane";
 import TemplatesDialog from "@/components/resume/builder/templates-dialog";
+import AtsAnalysisPanel from "@/components/resume/ats-analysis";
+import JobAnalysisPanel from "@/components/resume/job-analysis";
 
 export default function ResumeBuilder({
   resumeId,
@@ -22,30 +24,49 @@ export default function ResumeBuilder({
   initialTemplateSlug?: string;
   startNew?: boolean;
 }) {
+  const [activePanel, setActivePanel] = useState<"ats" | "job" | null>(null);
+
   return (
     <ResumeBuilderProvider
       resumeId={resumeId}
       initialTemplateSlug={initialTemplateSlug}
       startNew={startNew}
     >
-      <ResumeBuilderShell />
+      <ResumeBuilderShell activePanel={activePanel} setActivePanel={setActivePanel} />
     </ResumeBuilderProvider>
   );
 }
 
-function ResumeBuilderShell() {
+function ResumeBuilderShell({
+  activePanel,
+  setActivePanel,
+}: {
+  activePanel: "ats" | "job" | null;
+  setActivePanel: (value: "ats" | "job" | null) => void;
+}) {
   const [mobileView, setMobileView] = useState<"edit" | "preview">("edit");
+
+  if (activePanel === "ats") {
+    return <AtsAnalysisPanel onClose={() => setActivePanel(null)} />;
+  }
+
+  if (activePanel === "job") {
+    return <JobAnalysisPanel onClose={() => setActivePanel(null)} />;
+  }
 
   return (
     <div className="flex min-h-svh w-full flex-col overflow-x-hidden bg-cream">
-      <BuilderHeader />
+      <BuilderHeader
+        onOpenAtsAnalysis={() => setActivePanel("ats")}
+        onOpenJobAnalysis={() => setActivePanel("job")}
+      />
       <TemplatesDialog />
 
       <div className="mx-auto w-full max-w-7xl flex-1 overflow-x-hidden px-5 py-6 sm:px-8 sm:py-8">
         <button
           type="button"
           onClick={() => setMobileView((v) => (v === "edit" ? "preview" : "edit"))}
-          className="mb-6 flex w-full items-center justify-center gap-2 rounded-md border border-cream-dark bg-cream-light px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-cream-dark/60 lg:hidden"
+          className="mb-6 flex w-full items-center justify-center gap-2 rounded-md border border-cream-dark bg-cream-light px-4 py-2.5 text-sm font-medium text-charcoal transition-colors hover:bg-cream-dark/60 xl:hidden"
         >
           {mobileView === "edit" ? (
             <>
@@ -62,11 +83,11 @@ function ResumeBuilderShell() {
 
         <GuestImportBanner />
 
-        <div className="grid min-w-0 gap-8 lg:grid-cols-[460px_minmax(0,1fr)] xl:grid-cols-[520px_minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-8 xl:grid-cols-[minmax(400px,460px)_minmax(0,1fr)]">
           <div
             className={cn(
               "flex min-w-0 flex-col gap-6 overflow-x-hidden",
-              mobileView === "preview" ? "hidden lg:flex" : "flex"
+              mobileView === "preview" ? "hidden xl:flex" : "flex"
             )}
           >
             <div className="flex flex-col gap-3">
@@ -79,7 +100,7 @@ function ResumeBuilderShell() {
             </div>
           </div>
 
-          <div className={cn("min-w-0 overflow-x-hidden", mobileView === "edit" ? "hidden lg:block" : "block")}>
+          <div className={cn("min-w-0 overflow-x-hidden", mobileView === "edit" ? "hidden xl:block" : "block")}>
             <PreviewPane />
           </div>
         </div>

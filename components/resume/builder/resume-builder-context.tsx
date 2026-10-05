@@ -28,11 +28,17 @@ import { calculateCompleteness } from "@/lib/resume/completeness";
 import { createId } from "@/lib/resume/id";
 import { createClient } from "@/lib/supabase/client";
 import { hasResumeContent, shouldPersistResumeDraft } from "@/lib/resume/guest-import";
-import { clearGuestResume, loadGuestResume } from "@/lib/resume/storage";
+import {
+  clearGuestResume,
+  clearPendingImportedResume,
+  loadGuestResume,
+  loadPendingImportedResume,
+} from "@/lib/resume/storage";
 import { createGuestPersistenceAdapter } from "@/lib/resume/persistence/guest-adapter";
 import { createSupabasePersistenceAdapter } from "@/lib/resume/persistence/supabase-adapter";
 import type { ResumePersistenceAdapter } from "@/lib/resume/persistence/types";
 import type { PublishedTemplate } from "@/lib/templates/types";
+import { TailoringChangeSchema, type TailoringChange } from "@/lib/ai/schemas";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 export type PersistenceMode = "guest" | "authenticated";
@@ -42,6 +48,9 @@ const AUTOSAVE_DEBOUNCE_MS = 800;
 
 interface ResumeBuilderContextValue {
   resumeData: ResumeData;
+  applyTailoringChanges: (
+    changes: TailoringChange[]
+  ) => { success: true; appliedCount: number } | { success: false; message: string };
   title: string;
   updateTitle: (value: string) => void;
   completeness: number;
@@ -277,6 +286,25 @@ export function ResumeBuilderProvider({
     return () => clearTimeout(timer);
   }, [bootstrap]);
 
+  useEffect(() => {
+    if (!hydrated) return;
+
+    const imported = loadPendingImportedResume();
+    if (!imported) return;
+
+    clearPendingImportedResume();
+    const timer = setTimeout(() => {
+      setResumeData(imported);
+      const displayName = [imported.personal.firstName, imported.personal.lastName]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      setTitle(displayName || DEFAULT_RESUME_TITLE);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [hydrated]);
+
   // Published templates are readable by everyone (guests included) through RLS.
   useEffect(() => {
     let cancelled = false;
@@ -463,6 +491,116 @@ export function ResumeBuilderProvider({
   const updateSummary = useCallback((value: string) => {
     setResumeData((prev) => ({ ...prev, summary: value }));
   }, []);
+
+  const applyTailoringChanges = useCallback(
+    (changes: TailoringChange[]) => {
+      if (changes.length === 0) {
+        return { success: false as const, message: "Select at least one change to apply." };
+      }
+
+      const seenIds = new Set<string>();
+      const seenTargets = new Set<string>();
+      const next = { ...resumeData };
+      let nextExperience = resumeData.experience;
+      let nextProjects = resumeData.projects;
+      let nextEducation = resumeData.education;
+      let nextSummary = resumeData.summary;
+      let targetSection: ResumeSectionId | null = null;
+
+      for (const rawChange of changes) {
+        const parsed = TailoringChangeSchema.safeParse(rawChange);
+        if (!parsed.success) {
+          return { success: false as const, message: "One or more selected changes are invalid. No changes were applied." };
+        }
+
+        const change = parsed.data;
+        if (
+          !change.supportedByResume ||
+          !change.suggestedValue.trim() ||
+          change.suggestedValue.length > 20000 ||
+          change.suggestedValue === change.currentValue ||
+          seenIds.has(change.id)
+        ) {
+          return { success: false as const, message: "One or more selected changes could not be verified. No changes were applied." };
+        }
+        seenIds.add(change.id);
+
+        if (change.section === "summary") {
+          if (change.itemId !== null || change.field !== "summary") {
+            return { success: false as const, message: "One or more selected changes have an invalid target. No changes were applied." };
+          }
+          const target = "summary";
+          if (seenTargets.has(target) || resumeData.summary !== change.currentValue) {
+            return { success: false as const, message: "Your resume changed since these suggestions were generated. No changes were applied; regenerate suggestions and review them again." };
+          }
+          seenTargets.add(target);
+          nextSummary = change.suggestedValue;
+          targetSection ??= "summary";
+          continue;
+        }
+
+        if (!change.itemId) {
+          return { success: false as const, message: "One or more selected changes have an invalid target. No changes were applied." };
+        }
+
+        const target = `${change.section}:${change.itemId}:${change.field}`;
+        if (seenTargets.has(target)) {
+          return { success: false as const, message: "Multiple selected changes target the same resume field. Select only one for that field." };
+        }
+        seenTargets.add(target);
+
+        if (change.section === "experience" && change.field === "description") {
+          const item = resumeData.experience.find((entry) => entry.id === change.itemId);
+          if (!item || item.description !== change.currentValue) {
+            return { success: false as const, message: "Your resume changed since these suggestions were generated. No changes were applied; regenerate suggestions and review them again." };
+          }
+          nextExperience = nextExperience.map((entry) =>
+            entry.id === change.itemId ? { ...entry, description: change.suggestedValue } : entry
+          );
+          targetSection ??= "experience";
+          continue;
+        }
+
+        if (change.section === "projects" && (change.field === "description" || change.field === "technologies")) {
+          const item = resumeData.projects.find((entry) => entry.id === change.itemId);
+          const currentValue = change.field === "description" ? item?.description : item?.technologies;
+          if (!item || currentValue !== change.currentValue) {
+            return { success: false as const, message: "Your resume changed since these suggestions were generated. No changes were applied; regenerate suggestions and review them again." };
+          }
+          nextProjects = nextProjects.map((entry) =>
+            entry.id === change.itemId
+              ? { ...entry, [change.field]: change.suggestedValue }
+              : entry
+          );
+          targetSection ??= "projects";
+          continue;
+        }
+
+        if (change.section === "education" && change.field === "description") {
+          const item = resumeData.education.find((entry) => entry.id === change.itemId);
+          if (!item || item.description !== change.currentValue) {
+            return { success: false as const, message: "Your resume changed since these suggestions were generated. No changes were applied; regenerate suggestions and review them again." };
+          }
+          nextEducation = nextEducation.map((entry) =>
+            entry.id === change.itemId ? { ...entry, description: change.suggestedValue } : entry
+          );
+          targetSection ??= "education";
+          continue;
+        }
+
+        return { success: false as const, message: "One or more selected changes target an unsupported field. No changes were applied." };
+      }
+
+      next.summary = nextSummary;
+      next.experience = nextExperience;
+      next.projects = nextProjects;
+      next.education = nextEducation;
+      setResumeData(next);
+      if (targetSection) setActiveSection(targetSection);
+      return { success: true as const, appliedCount: changes.length };
+    },
+    [resumeData]
+  );
 
   const updateArrayField = useCallback(
     <K extends ResumeArrayField>(
@@ -706,6 +844,7 @@ export function ResumeBuilderProvider({
 
   const value: ResumeBuilderContextValue = {
     resumeData,
+    applyTailoringChanges,
     title,
     updateTitle,
     completeness,

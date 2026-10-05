@@ -58,7 +58,7 @@ export default function Dialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center p-2 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -73,7 +73,7 @@ export default function Dialog({
         ref={panelRef}
         tabIndex={-1}
         className={cn(
-          "relative w-full rounded-lg border border-cream-dark bg-cream-light p-6 shadow-lg outline-none",
+          "relative flex max-h-[calc(100dvh-1rem)] w-full flex-col overflow-hidden rounded-t-lg border border-cream-dark bg-cream-light p-4 shadow-lg outline-none sm:max-h-[calc(100dvh-2rem)] sm:rounded-lg sm:p-6",
           // Default width, unless the caller sets its own max-w-* (there is no class merging).
           !className?.includes("max-w-") && "max-w-md",
           className
@@ -89,9 +89,9 @@ export default function Dialog({
         </button>
         <h2 className="font-serif text-xl text-charcoal">{title}</h2>
         {description && (
-          <p className="mt-2 text-sm leading-6 text-charcoal/70">{description}</p>
+          <p className="mt-2 shrink-0 text-sm leading-6 text-charcoal/70">{description}</p>
         )}
-        {children}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
       </div>
     </div>
   );

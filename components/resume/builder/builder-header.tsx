@@ -2,12 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, ArrowLeft, CheckCircle2, LayoutTemplate, Loader2, Pencil } from "lucide-react";
+import { AlertCircle, ArrowLeft, BriefcaseBusiness, CheckCircle2, LayoutTemplate, Loader2, Pencil, Sparkles } from "lucide-react";
 import DownloadButton from "@/components/resume/builder/download-button";
 import { useResumeBuilder, type PersistenceMode, type SaveStatus } from "@/components/resume/builder/resume-builder-context";
 import Button from "@/components/ui/button";
 
-export default function BuilderHeader() {
+export default function BuilderHeader({
+  onOpenAtsAnalysis,
+  onOpenJobAnalysis,
+}: {
+  onOpenAtsAnalysis: () => void;
+  onOpenJobAnalysis: () => void;
+}) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const {
@@ -43,7 +49,7 @@ export default function BuilderHeader() {
             title={backLabel}
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">{backLabel}</span>
+            <span className="hidden xl:inline">{backLabel}</span>
           </Link>
           <div className="min-w-0 flex-1">
             {isEditingTitle ? (
@@ -108,12 +114,32 @@ export default function BuilderHeader() {
             type="button"
             variant="outline"
             size="sm"
+            onClick={onOpenAtsAnalysis}
+            title="Analyze ATS compatibility"
+          >
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden xl:inline">ATS Analysis</span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onOpenJobAnalysis}
+            title="Analyze job description"
+          >
+            <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden xl:inline">Job Analysis</span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
             onClick={openTemplatesDialog}
             disabled={templatesStatus !== "ready"}
             title="Browse and switch templates"
           >
             <LayoutTemplate className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Templates</span>
+            <span className="hidden xl:inline">Templates</span>
           </Button>
           <DownloadButton />
         </div>
