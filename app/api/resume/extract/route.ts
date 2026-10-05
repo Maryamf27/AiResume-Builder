@@ -1,6 +1,6 @@
 import mammoth from "mammoth";
 import { convert } from "html-to-text";
-import { PDFParse } from "pdf-parse";
+import { extractText } from "unpdf";
 import { MAX_RESUME_UPLOAD_BYTES, validateResumeFile } from "@/lib/resume/extraction/validation";
 import type {
   ResumeExtractionErrorCode,
@@ -47,13 +47,8 @@ function hasZipSignature(bytes: Uint8Array): boolean {
 }
 
 async function extractPdfText(bytes: Uint8Array): Promise<string> {
-  const parser = new PDFParse({ data: bytes, isEvalSupported: false, useWorkerFetch: false });
-  try {
-    const result = await parser.getText();
-    return cleanText(result.text);
-  } finally {
-    await parser.destroy();
-  }
+  const result = await extractText(bytes, { mergePages: true });
+  return cleanText(result.text);
 }
 
 async function extractDocxText(bytes: Uint8Array): Promise<string> {
