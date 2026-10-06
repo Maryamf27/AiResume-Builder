@@ -22,17 +22,6 @@ import type { JobAnalysis, MatchAnalysis, TailoringAnalysis } from "@/lib/ai/sch
 
 const MIN_JOB_DESCRIPTION_LENGTH = 80;
 const MAX_JOB_DESCRIPTION_LENGTH = 20000;
-const MAX_JOB_ANALYSIS_CACHE_ENTRIES = 20;
-const jobAnalysisCache = new Map<string, JobAnalysis>();
-
-function cacheJobAnalysis(description: string, analysis: JobAnalysis) {
-  jobAnalysisCache.delete(description);
-  jobAnalysisCache.set(description, analysis);
-  if (jobAnalysisCache.size > MAX_JOB_ANALYSIS_CACHE_ENTRIES) {
-    const oldestKey = jobAnalysisCache.keys().next().value;
-    if (oldestKey) jobAnalysisCache.delete(oldestKey);
-  }
-}
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -117,14 +106,10 @@ export default function JobAnalysisPanel({
     }
 
     if (analysisBusyRef.current) return;
-    if (!force) {
-      const cached = jobAnalysisCache.get(trimmed);
-      if (cached) {
-        setAnalysis(cached);
-        setStatus("ready");
-        setError(null);
-        return;
-      }
+    if (!hasResumeContent(resumeData)) {
+      setError("Add some resume content in the builder before analyzing this job.");
+      setStatus("error");
+      return;
     }
 
     analysisBusyRef.current = true;
@@ -141,15 +126,15 @@ export default function JobAnalysisPanel({
     setTailoringError(null);
 
     try {
-      const response = await fetch("/api/ai/analyze-job", {
+      const response = await fetch("/api/ai/analyze-job-match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobDescription: trimmed }),
+        body: JSON.stringify({ resume: resumeData, jobDescription: trimmed, force }),
         signal: controller.signal,
       });
 
       const payload = (await response.json().catch(() => null)) as
-        | { success?: boolean; data?: JobAnalysis; error?: string }
+        | { success?: boolean; data?: { job: JobAnalysis; match: MatchAnalysis }; error?: string }
         | null;
 
       if (!response.ok || !payload || payload.success !== true || !payload.data) {
@@ -157,9 +142,11 @@ export default function JobAnalysisPanel({
       }
 
       if (requestId !== analysisRequestIdRef.current || controller.signal.aborted) return;
-      cacheJobAnalysis(trimmed, payload.data);
-      setAnalysis(payload.data);
+      setAnalysis(payload.data.job);
       setStatus("ready");
+      setMatchAnalysis(payload.data.match);
+      setMatchAnalysisKey(JSON.stringify({ resume: resumeContext, job: payload.data.job }));
+      setMatchStatus("ready");
     } catch (caught) {
       if (controller.signal.aborted || (caught instanceof Error && caught.name === "AbortError")) return;
       if (requestId !== analysisRequestIdRef.current) return;
@@ -232,15 +219,15 @@ export default function JobAnalysisPanel({
     setMatchError(null);
 
     try {
-      const response = await fetch("/api/ai/match-resume", {
+      const response = await fetch("/api/ai/analyze-job-match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resume: resumeData, job: analysis }),
+        body: JSON.stringify({ resume: resumeData, jobDescription, force }),
         signal: controller.signal,
       });
 
       const payload = (await response.json().catch(() => null)) as
-        | { success?: boolean; data?: MatchAnalysis; error?: string }
+        | { success?: boolean; data?: { job: JobAnalysis; match: MatchAnalysis }; error?: string }
         | null;
 
       if (!response.ok || !payload || payload.success !== true || !payload.data) {
@@ -259,7 +246,8 @@ export default function JobAnalysisPanel({
         }
         return;
       }
-      setMatchAnalysis(payload.data);
+      setAnalysis(payload.data.job);
+      setMatchAnalysis(payload.data.match);
       setMatchAnalysisKey(requestKey);
       setMatchStatus("ready");
     } catch (caught) {
@@ -311,6 +299,7 @@ export default function JobAnalysisPanel({
           resume: resumeData,
           job: analysis,
           match: matchAnalysis,
+          force,
         }),
         signal: controller.signal,
       });

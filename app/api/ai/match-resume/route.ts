@@ -16,6 +16,7 @@ import {
   MAX_AI_RESUME_CONTEXT_LENGTH,
 } from "@/lib/ai/resume-context";
 import { createAITiming } from "@/lib/ai/timing";
+import { getAIUserScope, withAICache } from "@/lib/ai/cache";
 
 export const runtime = "nodejs";
 
@@ -42,9 +43,9 @@ function hasJobRequirements(job: JobAnalysis): boolean {
 
 function aiErrorResponse(error: AIError): Response {
   const status =
-    error.code === "MISSING_API_KEY" || error.code === "INVALID_CONFIG"
+    error.code === "MISSING_API_KEY" || error.code === "INVALID_CONFIG" || error.code === "INSUFFICIENT_CREDITS" || error.code === "MODEL_UNAVAILABLE"
       ? 503
-      : error.code === "RATE_LIMIT"
+      : error.code === "RATE_LIMIT" || error.code === "PROVIDER_RATE_LIMIT" || error.code === "QUOTA_EXHAUSTED"
         ? 429
         : error.code === "TIMEOUT"
           ? 504
@@ -53,8 +54,12 @@ function aiErrorResponse(error: AIError): Response {
             : 502;
 
   const message =
-    error.code === "RATE_LIMIT"
-      ? "AI service is temporarily busy. Please try again."
+    error.code === "QUOTA_EXHAUSTED"
+      ? error.message
+      : error.code === "RATE_LIMIT"
+      ? error.message
+      : error.code === "PROVIDER_RATE_LIMIT"
+      ? error.message
       : error.code === "TIMEOUT"
         ? "The match analysis timed out. Please try again."
         : error.code === "PROVIDER_ERROR"
@@ -102,15 +107,22 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   timing.mark("resume retrieval and job processing", processingStartedAt);
   timing.mark("database operations (none; resume supplied)", performance.now());
-  const result = await generateAIResponse({
-    systemPrompt: matchResumePrompt,
-    userPrompt: JSON.stringify({ resume: resumeContext, job: jobResult.data }),
-    temperature: 0.2,
-    maxTokens: 6000,
-    jsonMode: true,
-    operationName: "Job Match",
-    signal: request.signal,
-  });
+  const input = { resume: resumeContext, job: jobResult.data };
+  const result = await withAICache(
+    await getAIUserScope(),
+    "match-resume-v1",
+    input,
+    () => generateAIResponse({
+      systemPrompt: matchResumePrompt,
+      userPrompt: JSON.stringify(input),
+      temperature: 0.2,
+      maxTokens: 6000,
+      jsonMode: true,
+      operationName: "Job Match",
+      signal: request.signal,
+    }),
+    (value) => value.success && parseAndValidate(value.content, MatchAnalysisSchema).success,
+  );
 
   if (!result.success) {
     timing.finish();

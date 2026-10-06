@@ -170,6 +170,11 @@ export const MatchAnalysisSchema = z
             : "weak" as const,
   }));
 
+export const JobMatchAnalysisSchema = z.object({
+  job: JobAnalysisSchema,
+  match: MatchAnalysisSchema,
+}).strict();
+
 export type AIHealthResponse = z.infer<typeof AIHealthResponseSchema>;
 export type ATSAnalysis = z.infer<typeof ATSAnalysisSchema>;
 export type JobAnalysis = z.infer<typeof JobAnalysisSchema>;

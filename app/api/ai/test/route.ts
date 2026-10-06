@@ -38,9 +38,9 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!result.success) {
     const err = result as AIError;
     const status =
-      err.code === "MISSING_API_KEY" || err.code === "INVALID_CONFIG"
+      err.code === "MISSING_API_KEY" || err.code === "INVALID_CONFIG" || err.code === "INSUFFICIENT_CREDITS" || err.code === "MODEL_UNAVAILABLE"
         ? 503
-        : err.code === "RATE_LIMIT"
+        : err.code === "RATE_LIMIT" || err.code === "PROVIDER_RATE_LIMIT" || err.code === "QUOTA_EXHAUSTED"
           ? 429
           : err.code === "TIMEOUT"
             ? 504

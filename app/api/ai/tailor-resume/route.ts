@@ -19,6 +19,7 @@ import {
   MAX_AI_RESUME_CONTEXT_LENGTH,
 } from "@/lib/ai/resume-context";
 import { createAITiming } from "@/lib/ai/timing";
+import { getAIUserScope, withAICache } from "@/lib/ai/cache";
 
 export const runtime = "nodejs";
 
@@ -28,9 +29,9 @@ function errorResponse(message: string, status: number): Response {
 
 function aiErrorResponse(error: AIError): Response {
   const status =
-    error.code === "MISSING_API_KEY" || error.code === "INVALID_CONFIG"
+    error.code === "MISSING_API_KEY" || error.code === "INVALID_CONFIG" || error.code === "INSUFFICIENT_CREDITS" || error.code === "MODEL_UNAVAILABLE"
       ? 503
-      : error.code === "RATE_LIMIT"
+      : error.code === "RATE_LIMIT" || error.code === "PROVIDER_RATE_LIMIT" || error.code === "QUOTA_EXHAUSTED"
         ? 429
         : error.code === "TIMEOUT"
           ? 504
@@ -38,8 +39,12 @@ function aiErrorResponse(error: AIError): Response {
             ? 400
             : 502;
   const message =
-    error.code === "RATE_LIMIT"
-      ? "AI service is temporarily busy. Please try again."
+    error.code === "QUOTA_EXHAUSTED"
+      ? error.message
+      : error.code === "RATE_LIMIT"
+      ? error.message
+      : error.code === "PROVIDER_RATE_LIMIT"
+      ? error.message
       : error.code === "TIMEOUT"
         ? "Resume tailoring timed out. Please try again."
         : error.code === "PROVIDER_ERROR"
@@ -141,20 +146,30 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   timing.mark("resume retrieval and job/match processing", processingStartedAt);
   timing.mark("database operations (none; inputs supplied)", performance.now());
-  const result = await generateAIResponse({
-    systemPrompt: tailorResumePrompt,
-    userPrompt: JSON.stringify({
+  const input = {
       resume: resumeContext,
       job: jobResult.data,
       match: matchResult.data,
       ...(ats ? { ats } : {}),
-    }),
-    temperature: 0.2,
-    maxTokens: 5000,
-    jsonMode: true,
-    operationName: "Resume Tailoring",
-    signal: request.signal,
-  });
+  };
+  const generate = () => generateAIResponse({
+      systemPrompt: tailorResumePrompt,
+      userPrompt: JSON.stringify(input),
+      temperature: 0.2,
+      maxTokens: 5000,
+      jsonMode: true,
+      operationName: "Resume Tailoring",
+      signal: request.signal,
+    });
+  const result = payload.force === true
+    ? await generate()
+    : await withAICache(
+      await getAIUserScope(),
+      "tailor-resume-v1",
+      input,
+      generate,
+      (value) => value.success && parseAndValidate(value.content, TailoringAnalysisSchema).success,
+    );
 
   if (!result.success) {
     timing.finish();

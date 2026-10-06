@@ -3,6 +3,7 @@ import { generateAIResponse } from "@/lib/ai/client";
 import { parseResumePrompt } from "@/lib/ai/prompts/parse-resume";
 import { parseResumeData } from "@/lib/ai/schemas";
 import type { AIError } from "@/lib/ai/types";
+import { getAIUserScope, withAICache } from "@/lib/ai/cache";
 
 export const runtime = "nodejs";
 
@@ -37,20 +38,27 @@ export async function POST(request: NextRequest): Promise<Response> {
     );
   }
 
-  const result = await generateAIResponse({
-    systemPrompt: parseResumePrompt,
-    userPrompt: `Extract structured ResumeData from the following resume text.\n\n${trimmed}`,
-    temperature: 0.1,
-    maxTokens: 2500,
-    jsonMode: true,
-  });
+  const input = { text: trimmed };
+  const result = await withAICache(
+    await getAIUserScope(),
+    "parse-resume-v1",
+    input,
+    () => generateAIResponse({
+      systemPrompt: parseResumePrompt,
+      userPrompt: `Extract structured ResumeData from the following resume text:\n\n${trimmed}`,
+      temperature: 0.1,
+      maxTokens: 2500,
+      jsonMode: true,
+    }),
+    (value) => value.success && parseResumeData(value.content).success,
+  );
 
   if (!result.success) {
     const err = result as AIError;
     const status =
-      err.code === "MISSING_API_KEY" || err.code === "INVALID_CONFIG"
+      err.code === "MISSING_API_KEY" || err.code === "INVALID_CONFIG" || err.code === "INSUFFICIENT_CREDITS" || err.code === "MODEL_UNAVAILABLE"
         ? 503
-        : err.code === "RATE_LIMIT"
+        : err.code === "RATE_LIMIT" || err.code === "PROVIDER_RATE_LIMIT" || err.code === "QUOTA_EXHAUSTED"
           ? 429
           : err.code === "TIMEOUT"
             ? 504

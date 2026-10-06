@@ -4,6 +4,7 @@ import { JobAnalysisSchema, parseAndValidate } from "@/lib/ai/schemas";
 import { analyzeJobPrompt } from "@/lib/ai/prompts/analyze-job";
 import type { AIError } from "@/lib/ai/types";
 import { createAITiming } from "@/lib/ai/timing";
+import { getAIUserScope, withAICache } from "@/lib/ai/cache";
 
 export const runtime = "nodejs";
 
@@ -43,23 +44,30 @@ export async function POST(request: NextRequest): Promise<Response> {
   timing.mark("job processing", processingStartedAt);
   timing.mark("database operations (none)", performance.now());
 
-  const result = await generateAIResponse({
-    systemPrompt: analyzeJobPrompt,
-    userPrompt: JSON.stringify({ jobDescription }),
-    temperature: 0.2,
-    maxTokens: 5000,
-    jsonMode: true,
-    operationName: "Job Analysis",
-    signal: request.signal,
-  });
+  const input = { jobDescription };
+  const result = await withAICache(
+    await getAIUserScope(),
+    "job-analysis-v1",
+    input,
+    () => generateAIResponse({
+      systemPrompt: analyzeJobPrompt,
+      userPrompt: JSON.stringify(input),
+      temperature: 0.2,
+      maxTokens: 5000,
+      jsonMode: true,
+      operationName: "Job Analysis",
+      signal: request.signal,
+    }),
+    (value) => value.success && parseAndValidate(value.content, JobAnalysisSchema).success,
+  );
 
   if (!result.success) {
     const err = result as AIError;
     timing.finish();
     const status =
-      err.code === "MISSING_API_KEY" || err.code === "INVALID_CONFIG"
+      err.code === "MISSING_API_KEY" || err.code === "INVALID_CONFIG" || err.code === "INSUFFICIENT_CREDITS" || err.code === "MODEL_UNAVAILABLE"
         ? 503
-        : err.code === "RATE_LIMIT"
+        : err.code === "RATE_LIMIT" || err.code === "PROVIDER_RATE_LIMIT" || err.code === "QUOTA_EXHAUSTED"
           ? 429
           : err.code === "TIMEOUT"
             ? 504
@@ -68,8 +76,14 @@ export async function POST(request: NextRequest): Promise<Response> {
               : 502;
 
     const friendlyMessage =
-      err.code === "RATE_LIMIT"
-        ? "AI service is temporarily busy. Please try again."
+      err.code === "QUOTA_EXHAUSTED"
+        ? err.message
+        : err.code === "RATE_LIMIT"
+        ? err.message
+        : err.code === "PROVIDER_RATE_LIMIT"
+          ? err.message
+        : err.code === "INSUFFICIENT_CREDITS" || err.code === "MODEL_UNAVAILABLE"
+          ? err.message
         : err.code === "TIMEOUT"
           ? "The job analysis timed out. Please try again."
           : err.code === "PROVIDER_ERROR"

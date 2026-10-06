@@ -11,20 +11,16 @@ const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 const DEFAULT_MODEL = "openrouter/free";
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_TRANSIENT_RETRIES = 1;
-const DEFAULT_RETRY_DELAY_MS = 500;
-const MAX_RETRY_AFTER_MS = 5_000;
-
-function shouldRetryWithoutJsonMode(status: number): boolean {
-  return status === 400 || status === 422 || status === 415;
-}
+const BASE_RETRY_DELAY_MS = 700;
+const MAX_AUTOMATIC_RETRY_DELAY_MS = 3_000;
 
 function isTransientProviderStatus(status: number): boolean {
-  return status === 408 || status === 429 || status >= 500;
+  return status === 408 || status >= 500;
 }
 
-function getRetryDelayMs(response: Response): number | null {
+function getRetryDelayMs(response: Response, retry: number): number | null {
   const retryAfter = response.headers.get("Retry-After");
-  if (!retryAfter) return DEFAULT_RETRY_DELAY_MS;
+  if (!retryAfter) return Math.min(BASE_RETRY_DELAY_MS * 2 ** retry, MAX_AUTOMATIC_RETRY_DELAY_MS);
 
   const seconds = Number(retryAfter);
   const retryAt = Number.isFinite(seconds)
@@ -32,9 +28,49 @@ function getRetryDelayMs(response: Response): number | null {
     : Date.parse(retryAfter);
   const delay = retryAt - Date.now();
 
-  if (!Number.isFinite(delay)) return DEFAULT_RETRY_DELAY_MS;
-  if (delay > MAX_RETRY_AFTER_MS) return null;
-  return Math.max(250, delay);
+  if (!Number.isFinite(delay)) return Math.min(BASE_RETRY_DELAY_MS * 2 ** retry, MAX_AUTOMATIC_RETRY_DELAY_MS);
+  // Never retry before the provider's requested delay. Long waits are returned to the caller.
+  if (delay > MAX_AUTOMATIC_RETRY_DELAY_MS) return null;
+  return Math.max(0, delay);
+}
+
+function providerErrorText(value: unknown): string {
+  if (!value || typeof value !== "object") return "";
+  const root = value as Record<string, unknown>;
+  const error = root.error && typeof root.error === "object" ? root.error as Record<string, unknown> : root;
+  const metadata = error.metadata && typeof error.metadata === "object"
+    ? error.metadata as Record<string, unknown>
+    : {};
+  return [error.code, error.message, error.metadata && typeof error.metadata === "object"
+    ? metadata.raw
+    : ""]
+    .concat(typeof metadata.provider_name === "string" ? [metadata.provider_name] : [])
+    .filter((part): part is string => typeof part === "string")
+    .join(" ")
+    .toLowerCase();
+}
+
+function classifyProviderError(status: number, value: unknown): AIError | null {
+  const details = providerErrorText(value);
+  if (status === 401 || status === 403) {
+    return aiError("INVALID_CONFIG", "AI service authentication failed. Check the server configuration.");
+  }
+  if (status === 402 || /insufficient[_ -]credits|not enough credits|payment required/.test(details)) {
+    return aiError("INSUFFICIENT_CREDITS", "AI service credits are unavailable. Please try again later.");
+  }
+  if (status === 404 || /model[_ -]not[_ -]found|no provider found|model unavailable/.test(details)) {
+    return aiError("MODEL_UNAVAILABLE", "The configured AI model is unavailable. Please try again later.");
+  }
+  if (status === 429 && /free.model.*(daily|day)|daily.*(limit|quota)|quota.*(exhaust|exceed)|rate_limit_exceeded.*free/.test(details)) {
+    return aiError("QUOTA_EXHAUSTED", "The free AI model's daily limit has been reached. Please try again later.");
+  }
+  if (status === 429 && /provider.*(rate.?limit|too many)|upstream.*(rate.?limit|429)/.test(details)) {
+    return aiError("PROVIDER_RATE_LIMIT", "The selected AI provider is temporarily rate-limited. Please wait before trying again.");
+  }
+  if (status === 429) {
+    return aiError("RATE_LIMIT", "AI service is temporarily busy. Please wait before trying again.");
+  }
+  return null;
 }
 
 function waitForRetry(delayMs: number, signal?: AbortSignal): Promise<boolean> {
@@ -111,7 +147,6 @@ async function requestModelChat(
       ...baseBody,
       response_format: { type: "json_object" },
     });
-    requestBodies.push({ ...baseBody });
   } else {
     requestBodies.push(baseBody);
   }
@@ -148,12 +183,10 @@ async function requestModelChat(
           signal: controller.signal,
         });
 
-        if (res.ok) {
-          try {
-            json = await res.json();
-          } catch {
-            unreadableResponse = true;
-          }
+        try {
+          json = await res.json();
+        } catch {
+          unreadableResponse = res.ok;
         }
       } catch (error: unknown) {
         if (error instanceof DOMException && error.name === "AbortError") {
@@ -176,26 +209,29 @@ async function requestModelChat(
       }
 
       if (!res.ok) {
-        if (res.status === 401 || res.status === 403) {
-          console.error("[AI Client] Authentication error from AI provider.", { status: res.status });
-          return aiError("INVALID_CONFIG", "AI service authentication failed. Check the server configuration.");
-        }
-
-        if (bodyIndex === 0 && transientRetries === 0 && shouldRetryWithoutJsonMode(res.status)) {
-          console.warn("[AI Client] JSON mode is unsupported by the configured model; retrying without structured output.", {
+        const internalReason = providerErrorText(json)
+          .slice(0, 180)
+          .replace(/sk-or-v1-[a-z0-9]+/gi, "[redacted]");
+        const categorized = classifyProviderError(res.status, json);
+        if (categorized && categorized.code !== "RATE_LIMIT") {
+          console.error("[AI Client] AI provider rejected the request.", {
             model,
             status: res.status,
+            code: categorized.code,
+            reason: internalReason,
           });
-          break;
+          return categorized;
         }
 
-        if (isTransientProviderStatus(res.status) && transientRetries < MAX_TRANSIENT_RETRIES) {
-          const delayMs = getRetryDelayMs(res);
+        if ((isTransientProviderStatus(res.status) || res.status === 429) && transientRetries < MAX_TRANSIENT_RETRIES) {
+          const delayMs = getRetryDelayMs(res, transientRetries);
           if (delayMs !== null) {
             console.warn("[AI Client] AI provider is temporarily unavailable; retrying request.", {
               model,
               status: res.status,
               retry: transientRetries + 1,
+              delayMs,
+              reason: internalReason,
             });
             transientRetries += 1;
             if (await waitForRetry(delayMs, options.signal)) continue;
@@ -204,10 +240,10 @@ async function requestModelChat(
         }
 
         if (res.status === 429) {
-          return aiError("RATE_LIMIT", "AI service is rate-limited. Please wait a moment and try again.");
+          return categorized ?? aiError("RATE_LIMIT", "AI service is temporarily busy. Please wait before trying again.");
         }
 
-        console.error("[AI Client] AI provider returned an error.", { model, status: res.status });
+        console.error("[AI Client] AI provider returned an error.", { model, status: res.status, reason: internalReason });
         return aiError("PROVIDER_ERROR", "AI service is temporarily unavailable. Please try again later.");
       }
 

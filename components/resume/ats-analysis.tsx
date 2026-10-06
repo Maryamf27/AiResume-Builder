@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -152,19 +152,9 @@ function LoadingDashboard() {
             <Loader2 className="h-5 w-5 animate-spin text-olive" aria-hidden="true" />
             Analyzing your resume...
           </p>
-          <ul className="mt-5 grid gap-2 text-left text-sm text-charcoal/65 sm:grid-cols-2">
-            {[
-              "Checking structure",
-              "Analyzing content",
-              "Evaluating keywords",
-              "Generating recommendations",
-            ].map((item) => (
-              <li key={item} className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-olive" aria-hidden="true" />
-                {item}
-              </li>
-            ))}
-          </ul>
+          <p className="mt-3 text-sm text-charcoal/65">
+            Preparing the structured ATS review. Your results will appear when analysis is complete.
+          </p>
         </div>
       </section>
 
@@ -213,11 +203,13 @@ export default function AtsAnalysisPanel({
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error" | "empty">("idle");
   const [error, setError] = useState<string | null>(null);
   const [lastAnalyzedSignature, setLastAnalyzedSignature] = useState<string | null>(null);
+  const analysisBusyRef = useRef(false);
 
   const resumeSignature = useMemo(() => JSON.stringify(resumeData), [resumeData]);
   const hasData = hasResumeContent(resumeData);
 
-  const runAnalysis = useCallback(async () => {
+  const runAnalysis = useCallback(async (force = false) => {
+    if (analysisBusyRef.current) return;
     if (!hasData) {
       setAnalysis(null);
       setError(null);
@@ -225,6 +217,7 @@ export default function AtsAnalysisPanel({
       return;
     }
 
+    analysisBusyRef.current = true;
     setStatus("loading");
     setError(null);
 
@@ -232,7 +225,7 @@ export default function AtsAnalysisPanel({
       const response = await fetch("/api/ai/analyze-ats", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resume: resumeData }),
+        body: JSON.stringify({ resume: resumeData, force }),
       });
 
       const payload = (await response.json().catch(() => null)) as
@@ -250,6 +243,8 @@ export default function AtsAnalysisPanel({
       setAnalysis(null);
       setError(caught instanceof Error ? caught.message : "We couldn't safely process the ATS analysis. Please try again.");
       setStatus("error");
+    } finally {
+      analysisBusyRef.current = false;
     }
   }, [hasData, resumeData, resumeSignature]);
 
@@ -259,7 +254,8 @@ export default function AtsAnalysisPanel({
 
   useEffect(() => {
     if (status === "idle" && hasData) {
-      void runAnalysis();
+      const timer = window.setTimeout(() => void runAnalysis(), 0);
+      return () => window.clearTimeout(timer);
     }
   }, [hasData, runAnalysis, status]);
 
@@ -311,7 +307,7 @@ export default function AtsAnalysisPanel({
             <Button
               type="button"
               variant="outline"
-              onClick={() => void runAnalysis()}
+              onClick={() => void runAnalysis(true)}
             >
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
               Re-analyze

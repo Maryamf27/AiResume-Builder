@@ -5,6 +5,7 @@ import { analyzeAtsPrompt } from "@/lib/ai/prompts/analyze-ats";
 import { sanitizeResumeData } from "@/lib/resume/validation";
 import { hasResumeContent } from "@/lib/resume/guest-import";
 import type { AIError } from "@/lib/ai/types";
+import { getAIUserScope, withAICache } from "@/lib/ai/cache";
 
 export const runtime = "nodejs";
 
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     return errorResponse("Request body must be valid JSON.", 400);
   }
 
-  const payload = (body ?? {}) as { resume?: unknown };
+  const payload = (body ?? {}) as { resume?: unknown; force?: unknown };
   const resume = payload.resume ?? body;
 
   if (!resume || typeof resume !== "object") {
@@ -32,20 +33,30 @@ export async function POST(request: NextRequest): Promise<Response> {
     return errorResponse("Your resume needs some content before ATS analysis.", 400);
   }
 
-  const result = await generateAIResponse({
-    systemPrompt: analyzeAtsPrompt,
-    userPrompt: JSON.stringify({ resume: safeResume }, null, 2),
-    temperature: 0.2,
-    maxTokens: 2600,
-    jsonMode: true,
-  });
+  const input = { resume: safeResume };
+  const generate = () => generateAIResponse({
+      systemPrompt: analyzeAtsPrompt,
+      userPrompt: JSON.stringify(input),
+      temperature: 0.2,
+      maxTokens: 2600,
+      jsonMode: true,
+    });
+  const result = payload.force === true
+    ? await generate()
+    : await withAICache(
+      await getAIUserScope(),
+      "ats-analysis-v1",
+      input,
+      generate,
+      (value) => value.success && parseAndValidate(value.content, ATSAnalysisSchema).success,
+    );
 
   if (!result.success) {
     const err = result as AIError;
     const status =
-      err.code === "MISSING_API_KEY" || err.code === "INVALID_CONFIG"
+      err.code === "MISSING_API_KEY" || err.code === "INVALID_CONFIG" || err.code === "INSUFFICIENT_CREDITS" || err.code === "MODEL_UNAVAILABLE"
         ? 503
-        : err.code === "RATE_LIMIT"
+        : err.code === "RATE_LIMIT" || err.code === "PROVIDER_RATE_LIMIT" || err.code === "QUOTA_EXHAUSTED"
           ? 429
           : err.code === "TIMEOUT"
             ? 504
@@ -54,8 +65,14 @@ export async function POST(request: NextRequest): Promise<Response> {
               : 502;
 
     const friendlyMessage =
-      err.code === "RATE_LIMIT"
-        ? "AI service is temporarily rate-limited. Please try again shortly."
+      err.code === "QUOTA_EXHAUSTED"
+        ? err.message
+        : err.code === "RATE_LIMIT"
+        ? err.message
+        : err.code === "PROVIDER_RATE_LIMIT"
+          ? err.message
+        : err.code === "INSUFFICIENT_CREDITS" || err.code === "MODEL_UNAVAILABLE"
+          ? err.message
         : err.code === "TIMEOUT"
           ? "The ATS analysis timed out. Please try again."
           : "We couldn't safely process the ATS analysis. Please try again.";
