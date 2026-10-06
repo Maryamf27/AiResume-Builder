@@ -10,6 +10,7 @@ import type { AIError } from "@/lib/ai/types";
 import { aiErrorResponse, invalidAIResponse } from "@/lib/ai/http-errors";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 const MIN_JOB_DESCRIPTION_LENGTH = 80;
 const MAX_JOB_DESCRIPTION_LENGTH = 20_000;
 

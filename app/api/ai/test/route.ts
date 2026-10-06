@@ -4,6 +4,7 @@ import { AIHealthResponseSchema, parseAndValidate } from "@/lib/ai/schemas";
 import { aiErrorResponse, invalidAIResponse } from "@/lib/ai/http-errors";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
 export async function POST(request: NextRequest): Promise<Response> {
   let body: unknown;

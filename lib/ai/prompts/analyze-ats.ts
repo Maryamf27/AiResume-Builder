@@ -28,6 +28,14 @@ Evaluate the resume across meaningful ATS-related categories:
 - content clarity
 - formatting/content risks inferred from the data
 
+Output size limits (keep the response compact so it returns quickly):
+- categories: at most 8 items
+- strengths: at most 4 items
+- issues: at most 6 items, most important first
+- keywordAnalysis.detectedKeywords: at most 12 items; observations: at most 3 items
+- nextSteps: at most 5 items
+- Every summary, explanation, and recommendation must be one short sentence.
+
 Scoring:
 - overallScore: number from 0 to 100
 - categories: array with objects containing id, name, score, status, summary

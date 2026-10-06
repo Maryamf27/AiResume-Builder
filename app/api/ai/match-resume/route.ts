@@ -19,6 +19,7 @@ import { createAITiming } from "@/lib/ai/timing";
 import { getAIUserScope, withAICache } from "@/lib/ai/cache";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
 function errorResponse(message: string, status: number): Response {
   return Response.json({ success: false, error: message }, { status });

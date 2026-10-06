@@ -6,6 +6,7 @@ import { getAIUserScope, withAICache } from "@/lib/ai/cache";
 import { aiErrorResponse, invalidAIResponse } from "@/lib/ai/http-errors";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
 const MAX_RESUME_TEXT_LENGTH = 200_000;
 

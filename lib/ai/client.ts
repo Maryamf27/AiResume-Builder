@@ -9,7 +9,44 @@ import type {
 
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 const DEFAULT_MODEL = "openrouter/free";
-const REQUEST_TIMEOUT_MS = 30_000;
+// Free models routinely take 30-90s to emit a structured JSON report, so the
+// old 30s cap was aborting healthy requests. Override with OPENROUTER_TIMEOUT_MS.
+const DEFAULT_REQUEST_TIMEOUT_MS = 100_000;
+
+function resolveTimeoutMs(options: AIRequestOptions): number {
+  if (options.timeoutMs && options.timeoutMs > 0) return options.timeoutMs;
+  const fromEnv = Number(process.env.OPENROUTER_TIMEOUT_MS);
+  return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : DEFAULT_REQUEST_TIMEOUT_MS;
+}
+
+// OpenRouter may prefix a non-streaming body with keep-alive whitespace or SSE
+// comment lines (": OPENROUTER PROCESSING"). Parse tolerantly before giving up.
+function parseProviderBody(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const cleaned = text
+      .split(/\r?\n/)
+      .filter((line) => !line.trimStart().startsWith(":"))
+      .join("\n")
+      .trim();
+    try {
+      return JSON.parse(cleaned);
+    } catch {
+      const first = cleaned.indexOf("{");
+      const last = cleaned.lastIndexOf("}");
+      if (first !== -1 && last > first) return JSON.parse(cleaned.slice(first, last + 1));
+      throw new Error("unparseable");
+    }
+  }
+}
+
+function fallbackModels(primary: string): string[] {
+  return (process.env.OPENROUTER_FALLBACK_MODELS || "")
+    .split(",")
+    .map((m) => m.trim())
+    .filter((m) => m && m !== primary);
+}
 const MAX_TRANSIENT_RETRIES = 1;
 const BASE_RETRY_DELAY_MS = 700;
 const MAX_AUTOMATIC_RETRY_DELAY_MS = 3_000;
@@ -153,6 +190,11 @@ async function requestModelChat(
     messages,
   };
 
+  const fallbacks = fallbackModels(model);
+  if (fallbacks.length > 0) {
+    baseBody.models = [model, ...fallbacks];
+  }
+
   if (options.temperature !== undefined) {
     baseBody.temperature = options.temperature;
   }
@@ -185,11 +227,13 @@ async function requestModelChat(
         return aiError("PROVIDER_ERROR", "AI request was cancelled.");
       }
       options.signal?.addEventListener("abort", abortFromRequest, { once: true });
-      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      const timer = setTimeout(() => controller.abort(), resolveTimeoutMs(options));
 
       let res: Response;
       let json: unknown;
       let unreadableResponse = false;
+      let bodySnippet = "";
+      let timedOutReadingBody = false;
 
       try {
         res = await fetch(`${baseUrl}/chat/completions`, {
@@ -206,9 +250,12 @@ async function requestModelChat(
 
         try {
           const responseText = await res.text();
-          json = JSON.parse(responseText);
+          bodySnippet = responseText.slice(0, 200).replace(/\s+/g, " ");
+          json = parseProviderBody(responseText);
         } catch {
-          unreadableResponse = true;
+          // An abort while reading the body is a timeout, not a bad provider response.
+          if (controller.signal.aborted) timedOutReadingBody = true;
+          else unreadableResponse = true;
         }
       } catch (error: unknown) {
         const code = error instanceof DOMException && error.name === "AbortError" ? "TIMEOUT" : "PROVIDER_ERROR";
@@ -231,6 +278,22 @@ async function requestModelChat(
         options.signal?.removeEventListener("abort", abortFromRequest);
       }
 
+      if (timedOutReadingBody) {
+        if (options.signal?.aborted) return aiError("PROVIDER_ERROR", "AI request was cancelled.");
+        console.error("AI_REQUEST_ERROR", {
+          operation,
+          model,
+          status: res.status,
+          provider: "openrouter",
+          errorCode: "TIMEOUT",
+          openRouterErrorMessage: "Timed out while waiting for the model to finish generating",
+          durationMs: Math.round(performance.now() - requestStartedAt),
+          retryCount: transientRetries,
+        });
+        // Do not retry: the model was too slow, and a retry would just double the wait.
+        return aiError("TIMEOUT", "The AI model took too long to respond. Please try again.");
+      }
+
       const fields = providerErrorFields(json);
       console.info("AI_REQUEST_RESULT", {
         operation,
@@ -251,6 +314,7 @@ async function requestModelChat(
           errorCode: "PROVIDER_ERROR",
           openRouterErrorCode: null,
           openRouterErrorMessage: "Provider returned a non-JSON response",
+          bodySnippet: bodySnippet.replace(/sk-or-v1-[a-z0-9]+/gi, "[redacted]"),
           durationMs: Math.round(performance.now() - requestStartedAt),
           retryCount: transientRetries,
           retried: transientRetries > 0,

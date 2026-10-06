@@ -16,6 +16,8 @@ export interface AIRequestOptions {
   maxTokens?: number;
 
   jsonMode?: boolean;
+  /** Per-request upstream timeout. Defaults to OPENROUTER_TIMEOUT_MS or 100s. */
+  timeoutMs?: number;
   operationName?: string;
   signal?: AbortSignal;
 }

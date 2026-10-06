@@ -8,6 +8,7 @@ import { getAIUserScope, withAICache } from "@/lib/ai/cache";
 import { aiErrorResponse, invalidAIResponse } from "@/lib/ai/http-errors";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
 function errorResponse(message: string, status: number): Response {
   return Response.json({ success: false, error: message }, { status });
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       temperature: 0.2,
       // ATS reports contain several nested arrays; 2600 tokens can truncate
       // valid JSON for longer resumes, which then surfaces as INVALID_RESPONSE/502.
-      maxTokens: 4200,
+      maxTokens: 3500,
       jsonMode: true,
       operationName: "ATS Analysis",
     });

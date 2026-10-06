@@ -525,10 +525,16 @@ export function normalizeParsedResume(raw: unknown): ResumeData {
   return normalized;
 }
 
+// Some reasoning models prepend <think>...</think>; remove it before parsing.
+function stripReasoning(raw: string): string {
+  return raw.replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, "");
+}
+
 export function parseAndValidate<T>(
-  raw: string,
+  rawInput: string,
   schema: z.ZodType<T>
 ): { success: true; data: T } | { success: false; error: string } {
+  const raw = stripReasoning(rawInput);
   const candidateSources = [raw.trim()];
 
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
@@ -566,7 +572,8 @@ export function parseAndValidate<T>(
   return { success: false, error: lastError };
 }
 
-export function parseResumeData(raw: string): { success: true; data: ResumeData } | { success: false; error: string } {
+export function parseResumeData(rawInput: string): { success: true; data: ResumeData } | { success: false; error: string } {
+  const raw = stripReasoning(rawInput);
   const candidateSources = [raw.trim()];
 
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
