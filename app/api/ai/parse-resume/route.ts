@@ -49,7 +49,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       systemPrompt: parseResumePrompt,
       userPrompt: `Extract structured ResumeData from the following resume text:\n\n${trimmed}`,
       temperature: 0.1,
-      maxTokens: 2500,
+      maxTokens: 4000,
       jsonMode: true,
       operationName: "Resume Parsing",
     }),

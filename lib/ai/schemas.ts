@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { normalizeATSSeverity } from "@/lib/ai/ats-normalization";
+import { normalizeJobMatchPayload } from "@/lib/ai/job-match-normalization";
 import type { ResumeData } from "@/types/resume";
 import { sanitizeResumeData } from "@/lib/resume/validation";
 
@@ -35,7 +37,7 @@ export const ATSStrengthSchema = z.object({
 
 export const ATSIssueSchema = z.object({
   id: z.string().min(1, "Issue id is required."),
-  severity: z.enum(["critical", "warning", "suggestion"]),
+  severity: z.preprocess(normalizeATSSeverity, z.enum(["critical", "warning", "suggestion"])),
   category: z.string().min(1, "Issue category is required."),
   title: z.string().min(1, "Issue title is required."),
   explanation: z.string().min(1, "Issue explanation is required."),
@@ -43,18 +45,18 @@ export const ATSIssueSchema = z.object({
 });
 
 export const ATSKeywordAnalysisSchema = z.object({
-  detectedKeywords: z.array(z.string().min(1)).default([]),
-  observations: z.array(z.string().min(1)).default([]),
+  detectedKeywords: z.array(z.string().min(1)).max(8).default([]),
+  observations: z.array(z.string().min(1)).max(2).default([]),
 });
 
 export const ATSAnalysisSchema = z.object({
   overallScore: z.number().min(0).max(100),
   summary: z.string().min(1, "ATS summary is required."),
-  categories: z.array(ATSCategorySchema).min(1),
-  strengths: z.array(ATSStrengthSchema).default([]),
-  issues: z.array(ATSIssueSchema).default([]),
+  categories: z.array(ATSCategorySchema).min(1).max(6),
+  strengths: z.array(ATSStrengthSchema).max(3).default([]),
+  issues: z.array(ATSIssueSchema).max(4).default([]),
   keywordAnalysis: ATSKeywordAnalysisSchema,
-  nextSteps: z.array(z.string().min(1)).default([]),
+  nextSteps: z.array(z.string().min(1)).max(3).default([]),
 });
 
 export const JobRequirementSchema = z.object({
@@ -72,17 +74,17 @@ export const JobAnalysisSchema = z.object({
   companyName: z.string().nullable().default(null),
   location: z.string().nullable().default(null),
   employmentType: z.string().nullable().default(null),
-  experienceRequirements: z.array(JobRequirementSchema).default([]),
-  educationRequirements: z.array(JobRequirementSchema).default([]),
-  requiredSkills: z.array(JobSkillSchema).default([]),
-  preferredSkills: z.array(JobSkillSchema).default([]),
-  responsibilities: z.array(z.string().min(1)).default([]),
-  requiredQualifications: z.array(z.string().min(1)).default([]),
-  preferredQualifications: z.array(z.string().min(1)).default([]),
-  keywords: z.array(z.string().min(1)).default([]),
-  softSkills: z.array(z.string().min(1)).default([]),
-  toolsAndTechnologies: z.array(z.string().min(1)).default([]),
-  certifications: z.array(z.string().min(1)).default([]),
+  experienceRequirements: z.array(JobRequirementSchema).max(4).default([]),
+  educationRequirements: z.array(JobRequirementSchema).max(3).default([]),
+  requiredSkills: z.array(JobSkillSchema).max(5).default([]),
+  preferredSkills: z.array(JobSkillSchema).max(3).default([]),
+  responsibilities: z.array(z.string().min(1)).max(4).default([]),
+  requiredQualifications: z.array(z.string().min(1)).max(3).default([]),
+  preferredQualifications: z.array(z.string().min(1)).max(2).default([]),
+  keywords: z.array(z.string().min(1)).max(10).default([]),
+  softSkills: z.array(z.string().min(1)).max(4).default([]),
+  toolsAndTechnologies: z.array(z.string().min(1)).max(5).default([]),
+  certifications: z.array(z.string().min(1)).max(3).default([]),
   summary: z.string().min(1, "Job summary is required."),
 });
 
@@ -93,7 +95,7 @@ const matchScoreSchema = z.number().finite().transform((score) =>
 export const MatchAnalysisSchema = z
   .object({
     overallScore: matchScoreSchema,
-    status: z.enum(["excellent", "good", "moderate", "weak"]),
+    status: z.enum(["excellent", "good", "moderate", "weak"]).optional(),
     summary: z.string().min(1),
     categoryScores: z
       .object({
@@ -111,23 +113,23 @@ export const MatchAnalysisSchema = z
         resumeEvidence: z.string().min(1),
         jobRequirement: z.string().min(1),
       }).strict()
-    ),
+    ).max(5),
     missingSkills: z.array(
       z.object({
         skill: z.string().min(1),
         importance: z.enum(["high", "medium", "low"]),
         reason: z.string().min(1),
       }).strict()
-    ),
+    ).max(5),
     partialMatches: z.array(
       z.object({
         requirement: z.string().min(1),
         explanation: z.string().min(1),
         resumeEvidence: z.string().min(1),
       }).strict()
-    ),
-    matchedKeywords: z.array(z.string().min(1)),
-    missingKeywords: z.array(z.string().min(1)),
+    ).max(3),
+    matchedKeywords: z.array(z.string().min(1)).max(8),
+    missingKeywords: z.array(z.string().min(1)).max(8),
     responsibilityMatches: z.array(
       z.object({
         responsibility: z.string().min(1),
@@ -135,13 +137,13 @@ export const MatchAnalysisSchema = z
         explanation: z.string().min(1),
         resumeEvidence: z.string(),
       }).strict()
-    ),
+    ).max(4),
     strengths: z.array(
       z.object({
         title: z.string().min(1),
         explanation: z.string().min(1),
       }).strict()
-    ),
+    ).max(2),
     gaps: z.array(
       z.object({
         category: z.string().min(1),
@@ -149,13 +151,13 @@ export const MatchAnalysisSchema = z
         explanation: z.string().min(1),
         importance: z.enum(["high", "medium", "low"]),
       }).strict()
-    ),
+    ).max(3),
     recommendations: z.array(
       z.object({
         title: z.string().min(1),
         explanation: z.string().min(1),
       }).strict()
-    ),
+    ).max(3),
   })
   .strict()
   .transform((analysis) => ({
@@ -170,10 +172,13 @@ export const MatchAnalysisSchema = z
             : "weak" as const,
   }));
 
-export const JobMatchAnalysisSchema = z.object({
-  job: JobAnalysisSchema,
-  match: MatchAnalysisSchema,
-}).strict();
+export const JobMatchAnalysisSchema = z.preprocess(
+  normalizeJobMatchPayload,
+  z.object({
+    job: JobAnalysisSchema,
+    match: MatchAnalysisSchema,
+  })
+);
 
 export type AIHealthResponse = z.infer<typeof AIHealthResponseSchema>;
 export type ATSAnalysis = z.infer<typeof ATSAnalysisSchema>;

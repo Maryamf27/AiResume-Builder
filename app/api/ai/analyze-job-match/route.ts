@@ -42,7 +42,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       systemPrompt: analyzeJobMatchPrompt,
       userPrompt: JSON.stringify(input),
       temperature: 0.2,
-      maxTokens: 6500,
+      maxTokens: 3800,
       jsonMode: true,
       operationName: "Combined Job Analysis and Match",
       signal: request.signal,

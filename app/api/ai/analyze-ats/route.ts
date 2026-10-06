@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { generateAIResponse } from "@/lib/ai/client";
 import { ATSAnalysisSchema, parseAndValidate } from "@/lib/ai/schemas";
 import { analyzeAtsPrompt } from "@/lib/ai/prompts/analyze-ats";
+import { buildATSResumeContext } from "@/lib/ai/ats-context";
 import { sanitizeResumeData } from "@/lib/resume/validation";
 import { hasResumeContent } from "@/lib/resume/guest-import";
 import { getAIUserScope, withAICache } from "@/lib/ai/cache";
@@ -35,14 +36,14 @@ export async function POST(request: NextRequest): Promise<Response> {
     return errorResponse("Your resume needs some content before ATS analysis.", 400);
   }
 
-  const input = { resume: safeResume };
+  // The cache key and model both use the same minimal, ATS-relevant input.
+  const resumeContext = buildATSResumeContext(safeResume);
+  const input = { resume: resumeContext };
   const generate = () => generateAIResponse({
       systemPrompt: analyzeAtsPrompt,
       userPrompt: JSON.stringify(input),
       temperature: 0.2,
-      // ATS reports contain several nested arrays; 2600 tokens can truncate
-      // valid JSON for longer resumes, which then surfaces as INVALID_RESPONSE/502.
-      maxTokens: 3500,
+      maxTokens: 1300,
       jsonMode: true,
       operationName: "ATS Analysis",
     });
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     ? await generate()
     : await withAICache(
       await getAIUserScope(),
-      "ats-analysis-v1",
+      "ats-analysis-v2",
       input,
       generate,
       (value) => value.success && parseAndValidate(value.content, ATSAnalysisSchema).success,

@@ -8,9 +8,9 @@ import type {
 } from "./types";
 
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
-const DEFAULT_MODEL = "openrouter/free";
-// Free models routinely take 30-90s to emit a structured JSON report, so the
-// old 30s cap was aborting healthy requests. Override with OPENROUTER_TIMEOUT_MS.
+const DEFAULT_MODEL = "apodex/apodex-1.1-mini:free";
+// Free models can be slow; keep a finite request budget below route maxDuration.
+// Override with OPENROUTER_TIMEOUT_MS when deployment limits allow it.
 const DEFAULT_REQUEST_TIMEOUT_MS = 100_000;
 
 function resolveTimeoutMs(options: AIRequestOptions): number {
@@ -190,6 +190,11 @@ async function requestModelChat(
     messages,
   };
 
+  // These endpoints return compact structured results. Disable hidden reasoning so
+  // it cannot consume the output-token budget before the requested JSON is emitted.
+  // Providers that do not support reasoning controls ignore this optional field.
+  baseBody.reasoning = { effort: "none" };
+
   const fallbacks = fallbackModels(model);
   if (fallbacks.length > 0) {
     baseBody.models = [model, ...fallbacks];
@@ -205,7 +210,10 @@ async function requestModelChat(
 
   const requestBodies: Array<Record<string, unknown>> = [];
 
-  if (options.jsonMode) {
+  // Nemotron 3.5 Lightning's free endpoint does not support response_format.
+  // The prompts request JSON and every caller validates the returned schema.
+  const supportsJsonMode = model !== "nvidia/nemotron-3.5-lightning:free";
+  if (options.jsonMode && supportsJsonMode) {
     requestBodies.push({
       ...baseBody,
       response_format: { type: "json_object" },
@@ -291,7 +299,7 @@ async function requestModelChat(
           retryCount: transientRetries,
         });
         // Do not retry: the model was too slow, and a retry would just double the wait.
-        return aiError("TIMEOUT", "The AI model took too long to respond. Please try again.");
+        return aiError("TIMEOUT", "The AI model took too long to finish. Please try again.");
       }
 
       const fields = providerErrorFields(json);
@@ -401,7 +409,19 @@ async function requestModelChat(
       const messageObj = firstChoice?.message as Record<string, unknown> | undefined;
       const content = typeof messageObj?.content === "string" ? messageObj.content : "";
 
-      if (firstChoice?.finish_reason === "length") {
+      const finishReason = firstChoice?.finish_reason;
+      const hasReasoning = typeof messageObj?.reasoning === "string" && messageObj.reasoning.length > 0;
+      const diag = { finishReason, hasReasoning, contentLength: content.length };
+
+      if (!content.trim() && transientRetries < MAX_TRANSIENT_RETRIES && finishReason !== "length") {
+        // Free-router providers occasionally return an empty completion; one retry usually lands on another provider.
+        console.warn("[AI Client] Empty completion; retrying once.", { operation, model, ...diag });
+        transientRetries += 1;
+        if (await waitForRetry(BASE_RETRY_DELAY_MS, options.signal)) continue;
+        return aiError("PROVIDER_ERROR", "AI request was cancelled.");
+      }
+
+      if (finishReason === "length") {
         console.error("AI_REQUEST_ERROR", {
           operation,
           model,
@@ -409,7 +429,10 @@ async function requestModelChat(
           provider: fields.provider,
           errorCode: "INVALID_RESPONSE",
           openRouterErrorCode: null,
-          openRouterErrorMessage: "Completion reached the configured output-token limit",
+          openRouterErrorMessage: content.trim()
+            ? "Completion reached the configured output-token limit"
+            : "Output-token limit was consumed before any content (likely hidden reasoning)",
+          ...diag,
           durationMs: Math.round(performance.now() - requestStartedAt),
           retryCount: transientRetries,
           retried: transientRetries > 0,
@@ -426,6 +449,7 @@ async function requestModelChat(
           errorCode: "INVALID_RESPONSE",
           openRouterErrorCode: null,
           openRouterErrorMessage: "Provider returned an empty completion",
+          ...diag,
           durationMs: Math.round(performance.now() - requestStartedAt),
           retryCount: transientRetries,
           retried: transientRetries > 0,

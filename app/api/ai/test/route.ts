@@ -32,7 +32,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       "Do not include any other text, markdown, or code fences.",
     userPrompt: message.trim(),
     temperature: 0.3,
-    maxTokens: 200,
+    maxTokens: 1000,
     jsonMode: true,
     operationName: "AI Health Check",
   });
