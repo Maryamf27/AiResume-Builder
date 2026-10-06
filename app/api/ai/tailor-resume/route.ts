@@ -10,7 +10,7 @@ import {
   TailoringAnalysisSchema,
   type TailoringAnalysis,
 } from "@/lib/ai/schemas";
-import type { AIError } from "@/lib/ai/types";
+import { aiErrorResponse, invalidAIResponse } from "@/lib/ai/http-errors";
 import { hasResumeContent } from "@/lib/resume/guest-import";
 import { sanitizeResumeData } from "@/lib/resume/validation";
 import type { ResumeData } from "@/types/resume";
@@ -25,32 +25,6 @@ export const runtime = "nodejs";
 
 function errorResponse(message: string, status: number): Response {
   return Response.json({ success: false, error: message }, { status });
-}
-
-function aiErrorResponse(error: AIError): Response {
-  const status =
-    error.code === "MISSING_API_KEY" || error.code === "INVALID_CONFIG" || error.code === "INSUFFICIENT_CREDITS" || error.code === "MODEL_UNAVAILABLE"
-      ? 503
-      : error.code === "RATE_LIMIT" || error.code === "PROVIDER_RATE_LIMIT" || error.code === "QUOTA_EXHAUSTED"
-        ? 429
-        : error.code === "TIMEOUT"
-          ? 504
-          : error.code === "INVALID_REQUEST"
-            ? 400
-            : 502;
-  const message =
-    error.code === "QUOTA_EXHAUSTED"
-      ? error.message
-      : error.code === "RATE_LIMIT"
-      ? error.message
-      : error.code === "PROVIDER_RATE_LIMIT"
-      ? error.message
-      : error.code === "TIMEOUT"
-        ? "Resume tailoring timed out. Please try again."
-        : error.code === "PROVIDER_ERROR"
-          ? "AI service is temporarily unavailable. Please try again later."
-          : "We couldn't safely generate tailoring suggestions. Please try again.";
-  return errorResponse(message, status);
 }
 
 function readCurrentValue(
@@ -173,16 +147,15 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   if (!result.success) {
     timing.finish();
-    return aiErrorResponse(result as AIError);
+    return aiErrorResponse(result, "resume tailoring");
   }
 
   const validationStartedAt = performance.now();
   const validated = parseAndValidate(result.content, TailoringAnalysisSchema);
   timing.mark("schema validation", validationStartedAt);
   if (!validated.success) {
-    console.error("[Resume Tailoring] AI response failed schema validation.", validated.error);
     timing.finish();
-    return errorResponse("We couldn't safely generate tailoring suggestions. Please try again.", 502);
+    return invalidAIResponse("resume tailoring", validated.error, Math.round(performance.now() - processingStartedAt));
   }
 
   const safeAnalysis = keepResumeGroundedChanges(validated.data, resume);

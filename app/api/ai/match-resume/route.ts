@@ -7,7 +7,7 @@ import {
   parseAndValidate,
   ResumeDataSchema,
 } from "@/lib/ai/schemas";
-import type { AIError } from "@/lib/ai/types";
+import { aiErrorResponse, invalidAIResponse } from "@/lib/ai/http-errors";
 import { hasResumeContent } from "@/lib/resume/guest-import";
 import { sanitizeResumeData } from "@/lib/resume/validation";
 import type { JobAnalysis } from "@/lib/ai/schemas";
@@ -39,34 +39,6 @@ function hasJobRequirements(job: JobAnalysis): boolean {
       job.toolsAndTechnologies.length ||
       job.certifications.length
   );
-}
-
-function aiErrorResponse(error: AIError): Response {
-  const status =
-    error.code === "MISSING_API_KEY" || error.code === "INVALID_CONFIG" || error.code === "INSUFFICIENT_CREDITS" || error.code === "MODEL_UNAVAILABLE"
-      ? 503
-      : error.code === "RATE_LIMIT" || error.code === "PROVIDER_RATE_LIMIT" || error.code === "QUOTA_EXHAUSTED"
-        ? 429
-        : error.code === "TIMEOUT"
-          ? 504
-          : error.code === "INVALID_REQUEST"
-            ? 400
-            : 502;
-
-  const message =
-    error.code === "QUOTA_EXHAUSTED"
-      ? error.message
-      : error.code === "RATE_LIMIT"
-      ? error.message
-      : error.code === "PROVIDER_RATE_LIMIT"
-      ? error.message
-      : error.code === "TIMEOUT"
-        ? "The match analysis timed out. Please try again."
-        : error.code === "PROVIDER_ERROR"
-          ? "AI service is temporarily unavailable. Please try again later."
-          : "We couldn't safely calculate the match. Please try again.";
-
-  return errorResponse(message, status);
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
@@ -126,16 +98,15 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   if (!result.success) {
     timing.finish();
-    return aiErrorResponse(result as AIError);
+    return aiErrorResponse(result, "job matching");
   }
 
   const validationStartedAt = performance.now();
   const validated = parseAndValidate(result.content, MatchAnalysisSchema);
   timing.mark("schema validation", validationStartedAt);
   if (!validated.success) {
-    console.error("[Resume Match] AI response failed schema validation.", validated.error);
     timing.finish();
-    return errorResponse("We couldn't safely calculate the match. Please try again.", 502);
+    return invalidAIResponse("job matching", validated.error, Math.round(performance.now() - processingStartedAt));
   }
 
   timing.finish();

@@ -3,6 +3,9 @@ import PublicFooter from "@/components/public/footer";
 import PublicHeader from "@/components/public/header";
 import { getOptionalAuthInfo } from "@/lib/auth/session";
 
+// Public shell personalizes navigation from the signed-in user's auth session.
+export const dynamic = "force-dynamic";
+
 export default async function PublicLayout({
   children,
 }: {

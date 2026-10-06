@@ -16,7 +16,7 @@ import ButtonLink from "@/components/ui/button-link";
 import FinalCta from "@/components/public/final-cta";
 import ResumePreviewCard from "@/components/public/resume-preview-card";
 import TemplateFrame from "@/components/templates/template-frame";
-import { loadPublishedTemplates } from "@/lib/templates/load-gallery";
+import { loadPublicPublishedTemplates } from "@/lib/templates/load-gallery";
 import { NavTextLink } from "@/components/public/nav-links";
 import { faqPreviewItems } from "@/lib/content/faq";
 import { getOptionalAuthInfo, type PublicAuthInfo } from "@/lib/auth/session";
@@ -112,7 +112,7 @@ const homeFeatures: {
 export default async function HomePage() {
   const [auth, { items: featured }] = await Promise.all([
     getOptionalAuthInfo(),
-    loadPublishedTemplates(4),
+    loadPublicPublishedTemplates(4),
   ]);
 
   return (

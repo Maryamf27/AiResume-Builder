@@ -7,6 +7,7 @@ import { hasResumeContent } from "@/lib/resume/guest-import";
 import { sanitizeResumeData } from "@/lib/resume/validation";
 import { buildAIResumeContext, MAX_AI_RESUME_CONTEXT_LENGTH } from "@/lib/ai/resume-context";
 import type { AIError } from "@/lib/ai/types";
+import { aiErrorResponse, invalidAIResponse } from "@/lib/ai/http-errors";
 
 export const runtime = "nodejs";
 const MIN_JOB_DESCRIPTION_LENGTH = 80;
@@ -16,15 +17,8 @@ function errorResponse(message: string, status: number): Response {
   return Response.json({ success: false, error: message }, { status });
 }
 
-function aiErrorResponse(error: AIError): Response {
-  const status = error.code === "RATE_LIMIT" || error.code === "PROVIDER_RATE_LIMIT" || error.code === "QUOTA_EXHAUSTED" ? 429
-    : error.code === "TIMEOUT" ? 504
-      : error.code === "MISSING_API_KEY" || error.code === "INVALID_CONFIG" || error.code === "INSUFFICIENT_CREDITS" || error.code === "MODEL_UNAVAILABLE" ? 503
-        : error.code === "INVALID_REQUEST" ? 400 : 502;
-  return errorResponse(error.message, status);
-}
-
 export async function POST(request: NextRequest): Promise<Response> {
+  const requestStartedAt = performance.now();
   let body: unknown;
   try { body = await request.json(); } catch { return errorResponse("Request body must be valid JSON.", 400); }
   if (!body || typeof body !== "object" || Array.isArray(body)) return errorResponse("A resume and job description are required.", 400);
@@ -62,11 +56,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       (value) => value.success && parseAndValidate(value.content, JobMatchAnalysisSchema).success,
     );
 
-  if (!result.success) return aiErrorResponse(result as AIError);
+  if (!result.success) return aiErrorResponse(result as AIError, "Job analysis and match");
   const validated = parseAndValidate(result.content, JobMatchAnalysisSchema);
   if (!validated.success) {
-    console.error("[Job Match] AI response failed schema validation.", validated.error);
-    return errorResponse("We couldn't safely analyze this resume and job description. Please try again.", 502);
+    return invalidAIResponse("Job analysis and match", validated.error, Math.round(performance.now() - requestStartedAt));
   }
   return Response.json({ success: true, data: validated.data }, { headers: { "Cache-Control": "no-store" } });
 }

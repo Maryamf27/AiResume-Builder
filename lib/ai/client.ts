@@ -50,6 +50,20 @@ function providerErrorText(value: unknown): string {
     .toLowerCase();
 }
 
+function providerErrorFields(value: unknown): { code: string | number | null; message: string | null; provider: string } {
+  if (!value || typeof value !== "object") return { code: null, message: null, provider: "openrouter" };
+  const root = value as Record<string, unknown>;
+  const error = root.error && typeof root.error === "object" ? root.error as Record<string, unknown> : root;
+  const metadata = error.metadata && typeof error.metadata === "object"
+    ? error.metadata as Record<string, unknown>
+    : {};
+  return {
+    code: typeof error.code === "string" || typeof error.code === "number" ? error.code : null,
+    message: typeof error.message === "string" ? error.message.slice(0, 300) : null,
+    provider: typeof metadata.provider_name === "string" ? metadata.provider_name.slice(0, 80) : "openrouter",
+  };
+}
+
 function classifyProviderError(status: number, value: unknown): AIError | null {
   const details = providerErrorText(value);
   if (status === 401 || status === 403) {
@@ -69,6 +83,12 @@ function classifyProviderError(status: number, value: unknown): AIError | null {
   }
   if (status === 429) {
     return aiError("RATE_LIMIT", "AI service is temporarily busy. Please wait before trying again.");
+  }
+  if (status === 408) {
+    return aiError("TIMEOUT", "AI request timed out. Please try again.");
+  }
+  if (status === 400) {
+    return aiError("INVALID_REQUEST", "AI request could not be processed. Please check the request.");
   }
   return null;
 }
@@ -125,7 +145,8 @@ async function requestModelChat(
   apiKey: string,
   model: string,
   messages: { role: string; content: string }[],
-  options: AIRequestOptions
+  options: AIRequestOptions,
+  requestStartedAt: number,
 ): Promise<AIResponse | AIError> {
   const baseBody: Record<string, unknown> = {
     model,
@@ -151,7 +172,7 @@ async function requestModelChat(
     requestBodies.push(baseBody);
   }
 
-  const requestStartedAt = performance.now();
+  const operation = options.operationName || "AI request";
 
   for (let bodyIndex = 0; bodyIndex < requestBodies.length; bodyIndex += 1) {
     let transientRetries = 0;
@@ -184,70 +205,129 @@ async function requestModelChat(
         });
 
         try {
-          json = await res.json();
+          const responseText = await res.text();
+          json = JSON.parse(responseText);
         } catch {
-          unreadableResponse = res.ok;
+          unreadableResponse = true;
         }
       } catch (error: unknown) {
+        const code = error instanceof DOMException && error.name === "AbortError" ? "TIMEOUT" : "PROVIDER_ERROR";
+        console.error("AI_REQUEST_ERROR", {
+          operation,
+          model,
+          status: null,
+          provider: "openrouter",
+          errorCode: code,
+          errorMessage: code === "TIMEOUT" ? "Upstream request timed out" : "Network error communicating with OpenRouter",
+          durationMs: Math.round(performance.now() - requestStartedAt),
+          retryCount: transientRetries,
+        });
         if (error instanceof DOMException && error.name === "AbortError") {
           return aiError("TIMEOUT", "AI request timed out. Please try again.");
         }
-        console.error("[AI Client] Network error communicating with AI provider.");
         return aiError("PROVIDER_ERROR", "Unable to reach the AI service. Please try again later.");
       } finally {
         clearTimeout(timer);
         options.signal?.removeEventListener("abort", abortFromRequest);
-        if (options.operationName && process.env.NODE_ENV === "development") {
-          console.info(
-            `[AI TIMING] ${options.operationName} OpenRouter request: ${(performance.now() - requestStartedAt).toFixed(0)}ms`
-          );
-        }
       }
 
-      if (unreadableResponse) {
-        return aiError("INVALID_RESPONSE", "AI service returned an unreadable response.");
+      const fields = providerErrorFields(json);
+      console.info("AI_REQUEST_RESULT", {
+        operation,
+        model,
+        status: res.status,
+        durationMs: Math.round(performance.now() - requestStartedAt),
+        retryCount: transientRetries,
+        provider: fields.provider,
+      });
+
+      if (unreadableResponse && res.ok) {
+        console.error("AI_REQUEST_ERROR", {
+          operation,
+          model,
+          status: res.status,
+          contentType: res.headers.get("content-type"),
+          provider: fields.provider,
+          errorCode: "PROVIDER_ERROR",
+          openRouterErrorCode: null,
+          openRouterErrorMessage: "Provider returned a non-JSON response",
+          durationMs: Math.round(performance.now() - requestStartedAt),
+          retryCount: transientRetries,
+          retried: transientRetries > 0,
+        });
+        // Gateways and upstream providers sometimes return an HTML error page
+        // with HTTP 200. Retry once, then report a temporary provider failure.
+        if (transientRetries < MAX_TRANSIENT_RETRIES) {
+          const retryDelay = getRetryDelayMs(res, transientRetries);
+          if (retryDelay !== null) {
+            transientRetries += 1;
+            if (await waitForRetry(retryDelay, options.signal)) continue;
+            return aiError("PROVIDER_ERROR", "AI request was cancelled.");
+          }
+        }
+        return aiError("PROVIDER_ERROR", "AI service is temporarily unavailable. Please try again later.");
       }
 
       if (!res.ok) {
-        const internalReason = providerErrorText(json)
-          .slice(0, 180)
-          .replace(/sk-or-v1-[a-z0-9]+/gi, "[redacted]");
         const categorized = classifyProviderError(res.status, json);
-        if (categorized && categorized.code !== "RATE_LIMIT") {
-          console.error("[AI Client] AI provider rejected the request.", {
-            model,
-            status: res.status,
-            code: categorized.code,
-            reason: internalReason,
-          });
+        const isRetryableRateLimit = categorized?.code === "RATE_LIMIT" || categorized?.code === "PROVIDER_RATE_LIMIT";
+        const retryDelay = (isTransientProviderStatus(res.status) || isRetryableRateLimit) && transientRetries < MAX_TRANSIENT_RETRIES
+          ? getRetryDelayMs(res, transientRetries)
+          : null;
+        const willRetry = retryDelay !== null;
+        console.error("AI_REQUEST_ERROR", {
+          operation,
+          model,
+          status: res.status,
+          provider: fields.provider,
+          errorCode: categorized?.code ?? (res.status >= 500 ? "PROVIDER_ERROR" : "OPENROUTER_ERROR"),
+          openRouterErrorCode: fields.code,
+          openRouterErrorMessage: fields.message
+            ?.replace(apiKey, "[redacted]")
+            .replace(/Bearer\s+\S+/gi, "Bearer [redacted]")
+            .replace(/sk-or-v1-[a-z0-9]+/gi, "[redacted]")
+            .slice(0, 300),
+          durationMs: Math.round(performance.now() - requestStartedAt),
+          retryCount: transientRetries,
+          retried: transientRetries > 0,
+          willRetry,
+        });
+        if (categorized && !isRetryableRateLimit) {
           return categorized;
         }
 
-        if ((isTransientProviderStatus(res.status) || res.status === 429) && transientRetries < MAX_TRANSIENT_RETRIES) {
-          const delayMs = getRetryDelayMs(res, transientRetries);
-          if (delayMs !== null) {
+        if (willRetry && retryDelay !== null) {
             console.warn("[AI Client] AI provider is temporarily unavailable; retrying request.", {
               model,
               status: res.status,
               retry: transientRetries + 1,
-              delayMs,
-              reason: internalReason,
+              delayMs: retryDelay,
             });
             transientRetries += 1;
-            if (await waitForRetry(delayMs, options.signal)) continue;
+            if (await waitForRetry(retryDelay, options.signal)) continue;
             return aiError("PROVIDER_ERROR", "AI request was cancelled.");
-          }
         }
 
         if (res.status === 429) {
           return categorized ?? aiError("RATE_LIMIT", "AI service is temporarily busy. Please wait before trying again.");
         }
 
-        console.error("[AI Client] AI provider returned an error.", { model, status: res.status, reason: internalReason });
         return aiError("PROVIDER_ERROR", "AI service is temporarily unavailable. Please try again later.");
       }
 
       if (!json || typeof json !== "object") {
+        console.error("AI_REQUEST_ERROR", {
+          operation,
+          model,
+          status: res.status,
+          provider: fields.provider,
+          errorCode: "INVALID_RESPONSE",
+          openRouterErrorCode: null,
+          openRouterErrorMessage: "Response body was not a JSON object",
+          durationMs: Math.round(performance.now() - requestStartedAt),
+          retryCount: transientRetries,
+          retried: transientRetries > 0,
+        });
         return aiError("INVALID_RESPONSE", "AI service returned an unreadable response.");
       }
 
@@ -257,7 +337,35 @@ async function requestModelChat(
       const messageObj = firstChoice?.message as Record<string, unknown> | undefined;
       const content = typeof messageObj?.content === "string" ? messageObj.content : "";
 
+      if (firstChoice?.finish_reason === "length") {
+        console.error("AI_REQUEST_ERROR", {
+          operation,
+          model,
+          status: res.status,
+          provider: fields.provider,
+          errorCode: "INVALID_RESPONSE",
+          openRouterErrorCode: null,
+          openRouterErrorMessage: "Completion reached the configured output-token limit",
+          durationMs: Math.round(performance.now() - requestStartedAt),
+          retryCount: transientRetries,
+          retried: transientRetries > 0,
+        });
+        return aiError("INVALID_RESPONSE", "AI response was incomplete because it reached the output limit. Please shorten the input and try again.");
+      }
+
       if (!content.trim()) {
+        console.error("AI_REQUEST_ERROR", {
+          operation,
+          model,
+          status: res.status,
+          provider: fields.provider,
+          errorCode: "INVALID_RESPONSE",
+          openRouterErrorCode: null,
+          openRouterErrorMessage: "Provider returned an empty completion",
+          durationMs: Math.round(performance.now() - requestStartedAt),
+          retryCount: transientRetries,
+          retried: transientRetries > 0,
+        });
         return aiError("INVALID_RESPONSE", "AI returned an empty response. Please try again.");
       }
 
@@ -269,6 +377,16 @@ async function requestModelChat(
             totalTokens: usageObj.total_tokens ?? 0,
           }
         : undefined;
+
+      console.info("AI_REQUEST_SUCCESS", {
+        operation,
+        model,
+        status: res.status,
+        durationMs: Math.round(performance.now() - requestStartedAt),
+        retryCount: transientRetries,
+        retried: transientRetries > 0,
+        provider: fields.provider,
+      });
 
       return {
         success: true,
@@ -285,12 +403,39 @@ async function requestModelChat(
 export async function generateAIResponse(
   options: AIRequestOptions
 ): Promise<AIResult> {
+  const operation = options.operationName || "AI request";
+  const requestStartedAt = performance.now();
+  const configuredModel = process.env.OPENROUTER_MODEL?.trim() || DEFAULT_MODEL;
+  console.info("AI_REQUEST_START", {
+    operation,
+    model: configuredModel,
+    timestamp: new Date().toISOString(),
+  });
+
   if (!options.systemPrompt?.trim() || !options.userPrompt?.trim()) {
+    console.error("AI_REQUEST_ERROR", {
+      operation,
+      model: configuredModel,
+      status: null,
+      provider: "openrouter",
+      errorCode: "INVALID_REQUEST",
+      durationMs: Math.round(performance.now() - requestStartedAt),
+      retryCount: 0,
+    });
     return aiError("INVALID_REQUEST", "Both system prompt and user prompt are required.");
   }
 
   const config = resolveConfig();
   if ("success" in config && config.success === false) {
+    console.error("AI_REQUEST_ERROR", {
+      operation,
+      model: configuredModel,
+      status: null,
+      provider: "openrouter",
+      errorCode: config.code,
+      durationMs: Math.round(performance.now() - requestStartedAt),
+      retryCount: 0,
+    });
     return config;
   }
 
@@ -300,5 +445,5 @@ export async function generateAIResponse(
     { role: "user", content: options.userPrompt },
   ];
 
-  return requestModelChat(baseUrl, apiKey, model, messages, options);
+  return requestModelChat(baseUrl, apiKey, model, messages, options, requestStartedAt);
 }

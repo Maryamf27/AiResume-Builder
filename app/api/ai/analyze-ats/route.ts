@@ -4,8 +4,8 @@ import { ATSAnalysisSchema, parseAndValidate } from "@/lib/ai/schemas";
 import { analyzeAtsPrompt } from "@/lib/ai/prompts/analyze-ats";
 import { sanitizeResumeData } from "@/lib/resume/validation";
 import { hasResumeContent } from "@/lib/resume/guest-import";
-import type { AIError } from "@/lib/ai/types";
 import { getAIUserScope, withAICache } from "@/lib/ai/cache";
+import { aiErrorResponse, invalidAIResponse } from "@/lib/ai/http-errors";
 
 export const runtime = "nodejs";
 
@@ -14,6 +14,7 @@ function errorResponse(message: string, status: number): Response {
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
+  const requestStartedAt = performance.now();
   let body: unknown;
   try {
     body = await request.json();
@@ -38,8 +39,11 @@ export async function POST(request: NextRequest): Promise<Response> {
       systemPrompt: analyzeAtsPrompt,
       userPrompt: JSON.stringify(input),
       temperature: 0.2,
-      maxTokens: 2600,
+      // ATS reports contain several nested arrays; 2600 tokens can truncate
+      // valid JSON for longer resumes, which then surfaces as INVALID_RESPONSE/502.
+      maxTokens: 4200,
       jsonMode: true,
+      operationName: "ATS Analysis",
     });
   const result = payload.force === true
     ? await generate()
@@ -52,37 +56,12 @@ export async function POST(request: NextRequest): Promise<Response> {
     );
 
   if (!result.success) {
-    const err = result as AIError;
-    const status =
-      err.code === "MISSING_API_KEY" || err.code === "INVALID_CONFIG" || err.code === "INSUFFICIENT_CREDITS" || err.code === "MODEL_UNAVAILABLE"
-        ? 503
-        : err.code === "RATE_LIMIT" || err.code === "PROVIDER_RATE_LIMIT" || err.code === "QUOTA_EXHAUSTED"
-          ? 429
-          : err.code === "TIMEOUT"
-            ? 504
-            : err.code === "INVALID_REQUEST"
-              ? 400
-              : 502;
-
-    const friendlyMessage =
-      err.code === "QUOTA_EXHAUSTED"
-        ? err.message
-        : err.code === "RATE_LIMIT"
-        ? err.message
-        : err.code === "PROVIDER_RATE_LIMIT"
-          ? err.message
-        : err.code === "INSUFFICIENT_CREDITS" || err.code === "MODEL_UNAVAILABLE"
-          ? err.message
-        : err.code === "TIMEOUT"
-          ? "The ATS analysis timed out. Please try again."
-          : "We couldn't safely process the ATS analysis. Please try again.";
-
-    return errorResponse(friendlyMessage, status);
+    return aiErrorResponse(result, "ATS analysis");
   }
 
   const validated = parseAndValidate(result.content, ATSAnalysisSchema);
   if (!validated.success) {
-    return errorResponse("We couldn't safely process the ATS analysis. Please try again.", 502);
+    return invalidAIResponse("ATS analysis", validated.error, Math.round(performance.now() - requestStartedAt));
   }
 
   return Response.json(

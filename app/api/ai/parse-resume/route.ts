@@ -2,8 +2,8 @@ import { NextRequest } from "next/server";
 import { generateAIResponse } from "@/lib/ai/client";
 import { parseResumePrompt } from "@/lib/ai/prompts/parse-resume";
 import { parseResumeData } from "@/lib/ai/schemas";
-import type { AIError } from "@/lib/ai/types";
 import { getAIUserScope, withAICache } from "@/lib/ai/cache";
+import { aiErrorResponse, invalidAIResponse } from "@/lib/ai/http-errors";
 
 export const runtime = "nodejs";
 
@@ -14,6 +14,7 @@ function errorResponse(message: string, status: number): Response {
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
+  const requestStartedAt = performance.now();
   let body: unknown;
   try {
     body = await request.json();
@@ -49,29 +50,18 @@ export async function POST(request: NextRequest): Promise<Response> {
       temperature: 0.1,
       maxTokens: 2500,
       jsonMode: true,
+      operationName: "Resume Parsing",
     }),
     (value) => value.success && parseResumeData(value.content).success,
   );
 
   if (!result.success) {
-    const err = result as AIError;
-    const status =
-      err.code === "MISSING_API_KEY" || err.code === "INVALID_CONFIG" || err.code === "INSUFFICIENT_CREDITS" || err.code === "MODEL_UNAVAILABLE"
-        ? 503
-        : err.code === "RATE_LIMIT" || err.code === "PROVIDER_RATE_LIMIT" || err.code === "QUOTA_EXHAUSTED"
-          ? 429
-          : err.code === "TIMEOUT"
-            ? 504
-            : err.code === "INVALID_REQUEST"
-              ? 400
-              : 502;
-
-    return errorResponse(err.message, status);
+    return aiErrorResponse(result, "resume parsing");
   }
 
   const validated = parseResumeData(result.content);
   if (!validated.success) {
-    return errorResponse("We couldn't parse this resume reliably. Please try again or enter your information manually.", 502);
+    return invalidAIResponse("resume parsing", validated.error, Math.round(performance.now() - requestStartedAt));
   }
 
   return Response.json(

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { generateAIResponse } from "@/lib/ai/client";
 import { AIHealthResponseSchema, parseAndValidate } from "@/lib/ai/schemas";
-import type { AIError } from "@/lib/ai/types";
+import { aiErrorResponse, invalidAIResponse } from "@/lib/ai/http-errors";
 
 export const runtime = "nodejs";
 
@@ -33,34 +33,17 @@ export async function POST(request: NextRequest): Promise<Response> {
     temperature: 0.3,
     maxTokens: 200,
     jsonMode: true,
+    operationName: "AI Health Check",
   });
 
   if (!result.success) {
-    const err = result as AIError;
-    const status =
-      err.code === "MISSING_API_KEY" || err.code === "INVALID_CONFIG" || err.code === "INSUFFICIENT_CREDITS" || err.code === "MODEL_UNAVAILABLE"
-        ? 503
-        : err.code === "RATE_LIMIT" || err.code === "PROVIDER_RATE_LIMIT" || err.code === "QUOTA_EXHAUSTED"
-          ? 429
-          : err.code === "TIMEOUT"
-            ? 504
-            : err.code === "INVALID_REQUEST"
-              ? 400
-              : 502;
-
-    return Response.json(
-      { success: false, error: err.message },
-      { status }
-    );
+    return aiErrorResponse(result, "AI health check");
   }
 
   const validated = parseAndValidate(result.content, AIHealthResponseSchema);
 
   if (!validated.success) {
-    return Response.json(
-      { success: false, error: "AI response validation failed. Please try again." },
-      { status: 502 }
-    );
+    return invalidAIResponse("AI health check", validated.error);
   }
 
   return Response.json(validated.data, {

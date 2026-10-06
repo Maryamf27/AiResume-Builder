@@ -5,7 +5,7 @@ import TemplateGallery from "@/components/templates/template-gallery";
 import ButtonLink from "@/components/ui/button-link";
 import { pageMetadata } from "@/lib/seo";
 import { containerClass, routes } from "@/lib/site";
-import { loadPublishedTemplates } from "@/lib/templates/load-gallery";
+import { loadPublicPublishedTemplates } from "@/lib/templates/load-gallery";
 
 export const metadata: Metadata = pageMetadata({
   title: "Resume Templates",
@@ -15,7 +15,7 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default async function TemplatesPage() {
-  const { items, failed } = await loadPublishedTemplates();
+  const { items, failed } = await loadPublicPublishedTemplates();
 
   return (
     <main id="main-content">

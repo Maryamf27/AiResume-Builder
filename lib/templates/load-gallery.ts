@@ -1,48 +1,80 @@
+import { unstable_cache } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
 import type { GalleryTemplate } from "@/components/templates/template-gallery";
 import { createClient } from "@/lib/supabase/server";
+import { createPublicServerClient } from "@/lib/supabase/public-server";
 import { renderTemplateDocument } from "@/lib/templates/render";
 import { sampleResume } from "@/lib/templates/sample-data";
 
-/** Published templates rendered with the sample resume. Shared by the public
- *  /templates page and the signed-in /dashboard/templates page. */
+type GalleryRow = Pick<Database["public"]["Tables"]["templates"]["Row"],
+  "id" | "name" | "slug" | "category" | "description" | "html" | "css">;
+type TemplateClient = SupabaseClient<Database>;
+
+async function queryPublishedTemplates(client: TemplateClient, limit?: number): Promise<GalleryRow[]> {
+  let query = client
+    .from("templates")
+    .select("id, name, slug, category, description, html, css")
+    .eq("is_published", true)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (limit) query = query.limit(limit + 2);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}
+
+const getCachedPublicTemplateRows = unstable_cache(
+  async () => queryPublishedTemplates(createPublicServerClient()),
+  ["public-published-template-rows-v1"],
+  { revalidate: 300, tags: ["published-templates"] },
+);
+
+function renderGalleryRows(rows: GalleryRow[], limit?: number): GalleryTemplate[] {
+  const items: GalleryTemplate[] = [];
+  for (const template of rows) {
+    try {
+      items.push({
+        id: template.id,
+        slug: template.slug,
+        name: template.name,
+        category: template.category,
+        description: template.description,
+        srcDoc: renderTemplateDocument({ html: template.html, css: template.css }, sampleResume),
+      });
+    } catch (error) {
+      // One broken template must not take the whole catalogue down.
+      console.error(`Template "${template.slug}" failed to render:`, error);
+    }
+  }
+  return limit ? items.slice(0, limit) : items;
+}
+
+/** Public gallery data uses anon access and is cached independently of auth cookies. */
+export async function loadPublicPublishedTemplates(limit?: number): Promise<{
+  items: GalleryTemplate[];
+  failed: boolean;
+}> {
+  try {
+    const rows = await getCachedPublicTemplateRows();
+    return { items: renderGalleryRows(rows, limit), failed: false };
+  } catch (error) {
+    console.error("Could not load public templates:", error);
+    return { items: [], failed: true };
+  }
+}
+
+/** Signed-in gallery keeps the cookie-aware client for admin RLS compatibility. */
 export async function loadPublishedTemplates(limit?: number): Promise<{
   items: GalleryTemplate[];
   failed: boolean;
 }> {
   try {
-    const supabase = await createClient();
-    // The explicit filter matters for signed-in admins, whose RLS policy would
-    // otherwise also return drafts. Only published templates are ever listed.
-    let query = supabase
-      .from("templates")
-      .select("id, name, slug, category, description, html, css")
-      .eq("is_published", true)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true });
-    // A little slack so one template that fails to render doesn't leave a gap.
-    if (limit) query = query.limit(limit + 2);
-    const { data, error } = await query;
-    if (error) throw error;
-
-    const items: GalleryTemplate[] = [];
-    for (const t of data ?? []) {
-      try {
-        items.push({
-          id: t.id,
-          slug: t.slug,
-          name: t.name,
-          category: t.category,
-          description: t.description,
-          srcDoc: renderTemplateDocument({ html: t.html, css: t.css }, sampleResume),
-        });
-      } catch (err) {
-        // One broken template must not take the whole catalogue down.
-        console.error(`Template "${t.slug}" failed to render:`, err);
-      }
-    }
-    return { items: limit ? items.slice(0, limit) : items, failed: false };
-  } catch (err) {
-    console.error("Could not load templates:", err);
+    const rows = await queryPublishedTemplates(await createClient(), limit);
+    return { items: renderGalleryRows(rows, limit), failed: false };
+  } catch (error) {
+    console.error("Could not load templates:", error);
     return { items: [], failed: true };
   }
 }
