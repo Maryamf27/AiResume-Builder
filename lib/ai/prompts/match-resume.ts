@@ -13,7 +13,7 @@ Rules:
 - Compare responsibilities with evidence from experience, projects, and other relevant resume sections. For unmatched responsibilities, use an empty resumeEvidence string and explain the gap.
 - Compare education requirements only when JobAnalysis includes them. Do not penalize missing education when no education requirement is supplied.
 - Evaluate only categories supported by the supplied data. If a category has no relevant job requirement, use a neutral score of 100 and explain the absence in the summary where relevant.
-- Scores are numeric values from 0 to 100. The application clamps scores and derives the status from overallScore.
+- Scores are numeric values from 0 to 100. Do not return a status field; the application derives it from overallScore.
 - Recommendations must be truthful and must not advise adding unsupported skills or experience. Suggest clarifying or emphasizing existing evidence, or reviewing whether relevant experience is missing from the resume.
 - Do not rewrite, tailor, or modify ResumeData. Do not return revised resume content.
 - Return one complete JSON object only, with no markdown fences, comments, or surrounding text.
@@ -21,7 +21,6 @@ Rules:
 Required JSON shape:
 {
   "overallScore": 78,
-  "status": "good",
   "summary": "The resume has a solid match in the listed technologies, while experience duration is not clearly established.",
   "categoryScores": {
     "skills": 82,
@@ -84,5 +83,5 @@ Required JSON shape:
   ]
 }
 
-Use empty arrays when there are no items. Keep evidence concise. Return only the JSON object.
+Use empty arrays when there are no items. Enforce these maximums: matchedSkills 5, missingSkills 5, partialMatches 3, matchedKeywords 8, missingKeywords 8, responsibilityMatches 4, strengths 2, gaps 3, recommendations 3. If more items apply, return only the most relevant in priority order. Keep evidence concise. Return only the JSON object.
 `;

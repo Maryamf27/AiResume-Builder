@@ -76,6 +76,7 @@ Rules for each list item:
 - Return only meaningful skills and keywords; avoid filler.
 - Do not include generic terms like 'team player' unless explicitly mentioned in the job description.
 - If the job description does not mention a category, use only the categories that are supported.
+- Enforce these maximums: experienceRequirements 4, educationRequirements 3, requiredSkills 5, preferredSkills 3, responsibilities 4, requiredQualifications 3, preferredQualifications 2, keywords 10, softSkills 4, toolsAndTechnologies 5, certifications 3. If the source contains more, keep only the most important items in their original priority order.
 
 Output requirements:
 - jobTitle: string or null

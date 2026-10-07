@@ -203,7 +203,7 @@ export default function AtsAnalysisPanel({
 }: {
   onClose: () => void;
 }) {
-  const { resumeData, updatePersonal, updateEducation, updateExperience, updateProject } = useResumeBuilder();
+  const { resumeData, title, updatePersonal, updateEducation, updateExperience, updateProject } = useResumeBuilder();
   const [analysis, setAnalysis] = useState<ATSAnalysisData | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error" | "empty">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -335,6 +335,7 @@ export default function AtsAnalysisPanel({
       <div className="mb-5 text-center">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-charcoal/55">Resume Health</p>
         <h1 className="mt-1 text-2xl font-semibold text-charcoal sm:text-3xl">ATS Compatibility</h1>
+        <p className="mt-1 text-xs text-charcoal/55">Analyzing: {title || "My Resume"}</p>
       </div>
 
       {status === "loading" && <LoadingDashboard />}

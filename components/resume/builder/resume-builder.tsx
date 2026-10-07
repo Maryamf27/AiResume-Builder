@@ -60,7 +60,7 @@ function ResumeBuilderShell({
     <>
     {careerTailoring && <CareerTailoringHandoff />}
     <div className="flex min-h-svh w-full flex-col overflow-x-hidden bg-cream">
-      <BuilderHeader />
+      <BuilderHeader onOpenAtsAnalysis={() => setActivePanel("ats")} />
       <TemplatesDialog />
 
       <div className="mx-auto w-full max-w-7xl flex-1 overflow-x-hidden px-5 py-6 sm:px-8 sm:py-8">

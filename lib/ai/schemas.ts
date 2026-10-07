@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { normalizeATSSeverity } from "@/lib/ai/ats-normalization";
-import { normalizeJobMatchPayload } from "@/lib/ai/job-match-normalization";
+import { normalizeJobAnalysisPayload, normalizeJobMatchPayload, normalizeMatchAnalysisPayload } from "@/lib/ai/job-match-normalization";
 import type { ResumeData } from "@/types/resume";
 import { sanitizeResumeData } from "@/lib/resume/validation";
 
@@ -69,7 +69,7 @@ export const JobSkillSchema = z.object({
   category: z.string().min(1, "Skill category is required."),
 });
 
-export const JobAnalysisSchema = z.object({
+export const JobAnalysisSchema = z.preprocess(normalizeJobAnalysisPayload, z.object({
   jobTitle: z.string().nullable().default(null),
   companyName: z.string().nullable().default(null),
   location: z.string().nullable().default(null),
@@ -86,13 +86,13 @@ export const JobAnalysisSchema = z.object({
   toolsAndTechnologies: z.array(z.string().min(1)).max(5).default([]),
   certifications: z.array(z.string().min(1)).max(3).default([]),
   summary: z.string().min(1, "Job summary is required."),
-});
+}));
 
 const matchScoreSchema = z.number().finite().transform((score) =>
   Math.min(100, Math.max(0, score))
 );
 
-export const MatchAnalysisSchema = z
+export const MatchAnalysisSchema = z.preprocess((value) => normalizeMatchAnalysisPayload(value), z
   .object({
     overallScore: matchScoreSchema,
     status: z.enum(["excellent", "good", "moderate", "weak"]).optional(),
@@ -170,7 +170,7 @@ export const MatchAnalysisSchema = z
           : analysis.overallScore >= 60
             ? "moderate" as const
             : "weak" as const,
-  }));
+  })));
 
 export const JobMatchAnalysisSchema = z.preprocess(
   normalizeJobMatchPayload,
