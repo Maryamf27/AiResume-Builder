@@ -226,6 +226,50 @@ export const TailoringAnalysisSchema = z.object({
 export type TailoringAnalysis = z.infer<typeof TailoringAnalysisSchema>;
 export type TailoringChange = z.infer<typeof TailoringChangeSchema>;
 
+const ATSImprovementPlanDataSchema = z.object({
+  improvements: z.array(z.object({
+    id: z.string().min(1),
+    section: z.enum(["personal", "education", "experience", "projects"]),
+    itemId: z.string().nullable(),
+    type: z.literal("missing_information"),
+    field: z.enum(["title", "email", "phone", "location", "website", "linkedin", "github", "startDate", "endDate", "jobTitle", "company", "url", "technologies", "description"]),
+    title: z.string().min(1),
+    reason: z.string().min(1),
+    priority: z.enum(["high", "medium", "low"]),
+    requiresUserInput: z.literal(true),
+    currentValue: z.string(),
+    suggestedValue: z.null(),
+  }).strict()).max(6),
+  preserve: z.array(z.string().min(1)).max(3).default([]),
+}).strict();
+
+/** Canonical planner contract used for both validated model output and API success responses.
+ * Accept common JSON fences and a data/plan wrapper, then validate the same strict inner shape.
+ */
+export const ATSImprovementPlanSchema = z.preprocess((input) => {
+  let value = input;
+  if (typeof value === "string") {
+    const fenced = value.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+    try { value = JSON.parse(fenced?.[1] ?? value); } catch { return input; }
+  }
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    if (record.data && typeof record.data === "object") value = record.data;
+    else if (record.plan && typeof record.plan === "object") value = record.plan;
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const plan = value as Record<string, unknown>;
+      // Older prompt variants did not ask for the success discriminator. Add it only
+      // when the required planner fields exist; the strict schema still validates every field.
+      if (plan.success === undefined && Array.isArray(plan.improvements)) {
+        value = { ...plan, success: true };
+      }
+    }
+  }
+  return value;
+}, z.object({ success: z.literal(true), improvements: ATSImprovementPlanDataSchema.shape.improvements, preserve: ATSImprovementPlanDataSchema.shape.preserve }).strict());
+
+export type ATSImprovementPlan = z.infer<typeof ATSImprovementPlanSchema>;
+
 const experienceEntrySchema = z.object({
   id: z.string().default(""),
   jobTitle: z.string().default(""),

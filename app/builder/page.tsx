@@ -12,14 +12,16 @@ export const metadata: Metadata = pageMetadata({
 export default async function BuilderPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string; template?: string; new?: string }>;
+  searchParams: Promise<{ id?: string; template?: string; new?: string; panel?: string; careerTailoring?: string }>;
 }) {
-  const { id, template, new: startNew } = await searchParams;
+  const { id, template, new: startNew, panel, careerTailoring } = await searchParams;
   return (
     <ResumeBuilder
       resumeId={id}
       initialTemplateSlug={template}
       startNew={startNew === "1"}
+      initialPanel={panel === "ats" ? "ats" : null}
+      careerTailoring={careerTailoring === "1"}
     />
   );
 }

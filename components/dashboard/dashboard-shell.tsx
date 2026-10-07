@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   FileText,
   LayoutTemplate,
+  BriefcaseBusiness,
   UserRound,
   LogOut,
   Menu,
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/resumes", label: "My Resumes", icon: FileText },
   { href: "/dashboard/templates", label: "Templates", icon: LayoutTemplate },
+  { href: "/dashboard/career-tools/job-analysis", label: "Career Tools", icon: BriefcaseBusiness },
   { href: "/dashboard/account", label: "Account", icon: UserRound },
 ] as const;
 
@@ -44,7 +46,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
   const nav = (collapsed = false) => (
     <nav className="flex flex-col gap-1" aria-label="Dashboard">
       {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-        const active = pathname === href;
+        const active = pathname === href || (label === "Career Tools" && pathname.startsWith("/dashboard/career-tools/"));
         return (
           <Link
             key={label}

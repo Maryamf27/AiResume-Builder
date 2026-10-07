@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, FileText, LayoutTemplate, Pencil } from "lucide-react";
+import { ArrowRight, BarChart3, BriefcaseBusiness, FileText, LayoutTemplate, Pencil, Sparkles, WandSparkles } from "lucide-react";
 import DashboardShell from "@/components/dashboard/dashboard-shell";
 import CreateResumeButton from "@/components/dashboard/create-resume-button";
 import { createClient } from "@/lib/supabase/server";
@@ -80,14 +80,14 @@ export default async function DashboardPage() {
         <Stat label="Templates available" value={String(templateCount ?? 0)} />
       </dl>
 
-      {/* Recent activity */}
+      {/* Saved resume workspace */}
       <section className="mt-10" aria-labelledby="recent-heading">
         <div className="mb-4 flex items-center justify-between">
           <h2
             id="recent-heading"
             className="text-sm font-semibold uppercase tracking-wide text-charcoal/50"
           >
-            Recent resumes
+            My Resumes
           </h2>
           {total > 0 && (
             <Link
@@ -132,6 +132,16 @@ export default async function DashboardPage() {
             </p>
           </div>
         )}
+      </section>
+
+      <section className="mt-10" aria-labelledby="career-tools-heading">
+        <div className="mb-4"><h2 id="career-tools-heading" className="text-sm font-semibold uppercase tracking-wide text-charcoal/50">Career Tools</h2><p className="mt-1 text-sm text-charcoal/60">Explore a role, compare it with a resume, or check ATS readiness.</p></div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <ShortcutCard href="/dashboard/career-tools/ats-analysis" icon={<Sparkles className="h-5 w-5" aria-hidden="true" />} title="ATS Analysis" text="Check a saved resume’s ATS compatibility and review improvements." />
+          <ShortcutCard href="/dashboard/career-tools/job-analysis" icon={<BriefcaseBusiness className="h-5 w-5" aria-hidden="true" />} title="Job Analysis" text="Understand the skills and requirements in a job posting." />
+          <ShortcutCard href="/dashboard/career-tools/job-analysis" icon={<BarChart3 className="h-5 w-5" aria-hidden="true" />} title="Job Match" text="Compare one of your saved resumes with an analyzed job." />
+          <ShortcutCard href="/dashboard/career-tools/job-analysis" icon={<WandSparkles className="h-5 w-5" aria-hidden="true" />} title="AI Resume Improvements" text="Review tailored suggestions after matching a resume to a job." />
+        </div>
       </section>
 
       {/* Shortcuts */}

@@ -48,6 +48,7 @@ const AUTOSAVE_DEBOUNCE_MS = 800;
 
 interface ResumeBuilderContextValue {
   resumeData: ResumeData;
+  hydrated: boolean;
   applyTailoringChanges: (
     changes: TailoringChange[]
   ) => { success: true; appliedCount: number } | { success: false; message: string };
@@ -844,6 +845,7 @@ export function ResumeBuilderProvider({
 
   const value: ResumeBuilderContextValue = {
     resumeData,
+    hydrated,
     applyTailoringChanges,
     title,
     updateTitle,

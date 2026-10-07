@@ -7,6 +7,8 @@ import { sanitizeResumeData } from "@/lib/resume/validation";
 import { hasResumeContent } from "@/lib/resume/guest-import";
 import { getAIUserScope, withAICache } from "@/lib/ai/cache";
 import { aiErrorResponse, invalidAIResponse } from "@/lib/ai/http-errors";
+import { createHash } from "node:crypto";
+import { applyDeterministicATSScore } from "@/lib/ai/deterministic-ats-score";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -39,6 +41,9 @@ export async function POST(request: NextRequest): Promise<Response> {
   // The cache key and model both use the same minimal, ATS-relevant input.
   const resumeContext = buildATSResumeContext(safeResume);
   const input = { resume: resumeContext };
+  // Include every ResumeData field in the cache identity without sending editor metadata
+  // or direct contact values to the model.
+  const cacheInput = { ...input, resumeHash: createHash("sha256").update(JSON.stringify(safeResume)).digest("hex") };
   const generate = () => generateAIResponse({
       systemPrompt: analyzeAtsPrompt,
       userPrompt: JSON.stringify(input),
@@ -52,7 +57,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     : await withAICache(
       await getAIUserScope(),
       "ats-analysis-v2",
-      input,
+      cacheInput,
       generate,
       (value) => value.success && parseAndValidate(value.content, ATSAnalysisSchema).success,
     );
@@ -66,8 +71,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     return invalidAIResponse("ATS analysis", validated.error, Math.round(performance.now() - requestStartedAt));
   }
 
+  const scored = applyDeterministicATSScore(safeResume, validated.data);
   return Response.json(
-    { success: true, data: validated.data },
+    { success: true, data: scored },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

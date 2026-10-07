@@ -15,7 +15,12 @@ import Button from "@/components/ui/button";
 import ATSScoreCircle from "@/components/resume/ats-score-circle";
 import { useResumeBuilder } from "@/components/resume/builder/resume-builder-context";
 import { hasResumeContent } from "@/lib/resume/guest-import";
+import { buildATSResumeContext } from "@/lib/ai/ats-context";
 import { cn } from "@/lib/utils";
+import Input from "@/components/ui/input";
+import Dialog from "@/components/ui/dialog";
+import { ATSImprovementPlanSchema, type ATSImprovementPlan } from "@/lib/ai/schemas";
+import type { ResumeData } from "@/types/resume";
 
 export interface ATSCategory {
   id: string;
@@ -198,12 +203,23 @@ export default function AtsAnalysisPanel({
 }: {
   onClose: () => void;
 }) {
-  const { resumeData } = useResumeBuilder();
+  const { resumeData, updatePersonal, updateEducation, updateExperience, updateProject } = useResumeBuilder();
   const [analysis, setAnalysis] = useState<ATSAnalysisData | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error" | "empty">("idle");
   const [error, setError] = useState<string | null>(null);
   const [lastAnalyzedSignature, setLastAnalyzedSignature] = useState<string | null>(null);
   const analysisBusyRef = useRef(false);
+  const planBusyRef = useRef(false);
+  const [plan, setPlan] = useState<ATSImprovementPlan | null>(null);
+  const [planLoading, setPlanLoading] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [selectedPlanItems, setSelectedPlanItems] = useState<Set<string>>(new Set());
+  const [confirmPlan, setConfirmPlan] = useState(false);
+  const [appliedPlan, setAppliedPlan] = useState(false);
+  const [beforeScore, setBeforeScore] = useState<number | null>(null);
+  const [beforeAnalysis, setBeforeAnalysis] = useState<ATSAnalysisData | null>(null);
+  const [beforeResume, setBeforeResume] = useState<ResumeData | null>(null);
 
   const resumeSignature = useMemo(() => JSON.stringify(resumeData), [resumeData]);
   const hasData = hasResumeContent(resumeData);
@@ -251,6 +267,54 @@ export default function AtsAnalysisPanel({
   const staleAnalysis =
     analysis && lastAnalyzedSignature && lastAnalyzedSignature !== resumeSignature;
   const currentScoreStatus = analysis ? scoreStatus(analysis.overallScore) : null;
+
+  const generatePlan = async () => {
+    if (planBusyRef.current || !analysis || staleAnalysis) return;
+    planBusyRef.current = true;
+    setPlanLoading(true);
+    setPlanError(null);
+    try {
+      const response = await fetch("/api/ai/improve-ats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ resume: resumeData, analysis }) });
+      const payload: unknown = await response.json().catch(() => null);
+      const parsedPlan = ATSImprovementPlanSchema.safeParse(payload);
+      const apiError = payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string" ? payload.error : null;
+      if (!response.ok || !parsedPlan.success) throw new Error(apiError || "We couldn't prepare suggestions right now. Please try again shortly.");
+      const validPlan = parsedPlan.data;
+      setPlan(validPlan);
+      setAnswers(Object.fromEntries(validPlan.improvements.map((item) => [item.id, ""])));
+      setSelectedPlanItems(new Set(validPlan.improvements.map((item) => item.id)));
+    } catch (err) { setPlanError(err instanceof Error ? err.message : "We couldn't prepare suggestions right now."); }
+    finally { planBusyRef.current = false; setPlanLoading(false); }
+  };
+
+  const applyPlan = () => {
+    const selectedItems = plan?.improvements.filter((item) => selectedPlanItems.has(item.id) && answers[item.id]?.trim()) ?? [];
+    for (const item of selectedItems) {
+      const value = answers[item.id].trim();
+      if (item.section === "personal" && item.itemId === null) {
+        const current = resumeData.personal[item.field as keyof ResumeData["personal"]];
+        if (!current?.trim() && item.currentValue === "") updatePersonal({ [item.field]: value });
+      } else if (item.section === "education" && item.itemId) {
+        const current = resumeData.education.find((entry) => entry.id === item.itemId);
+        if (current && !current[item.field as keyof typeof current]?.toString().trim() && item.currentValue === "") updateEducation(item.itemId, { [item.field]: value });
+      } else if (item.section === "experience" && item.itemId) {
+        const current = resumeData.experience.find((entry) => entry.id === item.itemId);
+        if (current && !current[item.field as keyof typeof current]?.toString().trim() && item.currentValue === "") updateExperience(item.itemId, { [item.field]: value });
+      } else if (item.section === "projects" && item.itemId) {
+        const current = resumeData.projects.find((entry) => entry.id === item.itemId);
+        if (item.field === "description" && current?.description === item.currentValue) updateProject(item.itemId, { description: `${current.description.trimEnd()}\n${value}`.trim() });
+        else if (current && !current[item.field as keyof typeof current]?.toString().trim() && item.currentValue === "") updateProject(item.itemId, { [item.field]: value });
+      }
+    }
+    if (selectedItems.length) {
+      setBeforeScore(analysis?.overallScore ?? null);
+      setBeforeAnalysis(analysis);
+      setBeforeResume(resumeData);
+    }
+    setConfirmPlan(false);
+    setAppliedPlan(selectedItems.length > 0);
+    setPlan(null);
+  };
 
   useEffect(() => {
     if (status === "idle" && hasData) {
@@ -320,6 +384,20 @@ export default function AtsAnalysisPanel({
             </div>
           )}
 
+          {beforeScore !== null && !staleAnalysis && (
+            <div className="rounded-xl border border-olive/20 bg-white p-4 text-center" role="status">
+              <p className="font-semibold text-charcoal">ATS score re-checked</p>
+              <p className="mt-1 text-sm text-charcoal/70">Before {beforeScore}% · Now {analysis.overallScore}% · {analysis.overallScore - beforeScore >= 0 ? "+" : ""}{analysis.overallScore - beforeScore} points</p>
+              {beforeAnalysis && <ul className="mx-auto mt-3 grid max-w-2xl gap-2 text-left text-xs sm:grid-cols-2">{analysis.categories.map((category) => {
+                const previous = beforeAnalysis.categories.find((item) => item.id === category.id || item.name === category.name);
+                if (!previous) return null;
+                const difference = category.score - previous.score;
+                return <li key={category.id} className="flex justify-between rounded-md bg-cream-light px-3 py-2"><span>{category.name}</span><span className="font-medium tabular-nums">{previous.score} → {category.score} {difference ? `(${difference > 0 ? "+" : ""}${difference})` : "(no change)"}</span></li>;
+              })}</ul>}
+              {process.env.NODE_ENV === "development" && beforeResume && <details className="mx-auto mt-3 max-w-2xl text-left text-xs text-charcoal/65"><summary className="cursor-pointer">Development check: data sent and analyzed</summary><pre className="mt-2 overflow-auto rounded bg-cream-light p-3">{JSON.stringify({ before: { title: beforeResume.personal.title, website: beforeResume.personal.website, github: beforeResume.personal.github, education: beforeResume.education.map(({ id, startDate, endDate }) => ({ id, startDate, endDate })), projects: beforeResume.projects.map(({ id, description }) => ({ id, description })) }, currentResumeData: resumeData, atsRequest: { resume: buildATSResumeContext(resumeData), force: true }, atsResult: { overallScore: analysis.overallScore, categories: analysis.categories } }, null, 2)}</pre></details>}
+            </div>
+          )}
+
           <section className="rounded-xl border border-cream-dark bg-white px-5 py-8 sm:px-8 sm:py-10">
             <div className="flex flex-col items-center text-center">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-charcoal/55">ATS Score</p>
@@ -332,6 +410,41 @@ export default function AtsAnalysisPanel({
               </p>
             </div>
           </section>
+
+          {!plan && !appliedPlan && analysis.issues.length > 0 && (
+            <section className="rounded-xl border border-olive/20 bg-olive/5 p-5 sm:flex sm:items-center sm:justify-between sm:gap-5 sm:p-6">
+              <div><h2 className="text-lg font-semibold text-charcoal">Ready to improve your ATS results?</h2><p className="mt-1 text-sm leading-6 text-charcoal/70">Review useful updates based on this report. Nothing changes until you provide and approve each detail.</p></div>
+              <Button type="button" variant="primary" className="mt-4 shrink-0 sm:mt-0" disabled={planLoading || Boolean(staleAnalysis)} onClick={() => void generatePlan()}>
+                {planLoading ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />Finding the most useful ATS improvements...</> : `Make My Resume ATS-Friendly${analysis.issues.length ? ` · ${analysis.issues.length} issues` : ""}`}
+              </Button>
+              {staleAnalysis && <p className="mt-2 text-xs text-amber-800">Re-analyze before creating suggestions.</p>}
+            </section>
+          )}
+          {!plan && !appliedPlan && analysis.issues.length === 0 && (
+            <section className="rounded-xl border border-olive/20 bg-olive/5 p-5 text-center">
+              <h2 className="font-semibold text-charcoal">Your resume is already ATS-friendly</h2>
+              <p className="mt-1 text-sm text-charcoal/70">No meaningful issues were found in this review.</p>
+              <Button type="button" variant="outline" className="mt-4" onClick={onClose}>Review Resume</Button>
+            </section>
+          )}
+
+          {planError && <p className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive" role="alert">{planError}</p>}
+          {plan && (
+            <section className="rounded-xl border border-cream-dark bg-white p-5 sm:p-6">
+              <h2 className="text-xl font-semibold text-charcoal">Improve Your Resume</h2>
+              <p className="mt-1 text-sm text-charcoal/65">Only information you enter can be added. Leave anything blank to skip it.</p>
+              {plan.improvements.length ? <ul className="mt-4 space-y-4">{plan.improvements.map((item) => <li key={item.id} className="rounded-lg border border-cream-dark bg-cream-light p-4">
+                <label className="flex items-start gap-3"><input type="checkbox" className="mt-1 accent-olive" checked={selectedPlanItems.has(item.id)} onChange={() => setSelectedPlanItems((old) => { const next = new Set(old); next.has(item.id) ? next.delete(item.id) : next.add(item.id); return next; })} /><span><span className="font-medium text-charcoal">{item.title}</span><span className="ml-2 text-xs uppercase text-charcoal/55">{item.priority}</span><span className="mt-1 block text-sm text-charcoal/65">{item.reason}</span></span></label>
+                <Input className="mt-3" value={answers[item.id] ?? ""} onChange={(event) => setAnswers((old) => ({ ...old, [item.id]: event.target.value }))} placeholder={item.section === "projects" && item.field === "description" ? "Enter a real result to append (optional)" : "Enter your information (optional)"} aria-label={item.title} />
+              </li>)}</ul> : <p className="mt-4 text-sm text-charcoal/70">Your resume is already ATS-friendly. No missing details were found for this report.</p>}
+              {plan.preserve.length > 0 && <p className="mt-4 text-xs text-charcoal/60">Already working well: {plan.preserve.join(" · ")}</p>}
+              {plan.improvements.length > 0 && <div className="mt-5 flex flex-wrap gap-3"><Button type="button" variant="outline" onClick={() => setPlan(null)}>Cancel</Button><Button type="button" variant="primary" disabled={!plan.improvements.some((item) => selectedPlanItems.has(item.id) && answers[item.id]?.trim())} onClick={() => setConfirmPlan(true)}>Review {plan.improvements.filter((item) => selectedPlanItems.has(item.id) && answers[item.id]?.trim()).length} Changes</Button></div>}
+            </section>
+          )}
+          {appliedPlan && <section className="rounded-xl border border-olive/20 bg-white p-5 text-center"><CheckCircle2 className="mx-auto h-8 w-8 text-olive" /><h2 className="mt-2 font-semibold text-charcoal">Resume updated successfully</h2><p className="mt-1 text-sm text-charcoal/65">Your builder and saved resume are updating with the details you approved.</p><div className="mt-4 flex justify-center gap-3"><Button type="button" variant="outline" onClick={onClose}>Continue Editing</Button><Button type="button" variant="primary" onClick={() => { setAppliedPlan(false); void runAnalysis(true); }}>Re-check ATS Score</Button></div></section>}
+          <Dialog open={confirmPlan} onClose={() => setConfirmPlan(false)} title="Apply selected changes?" description={`Apply ${plan?.improvements.filter((item) => selectedPlanItems.has(item.id) && answers[item.id]?.trim()).length ?? 0} details you provided to your resume?`}>
+            <div className="mt-5 flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setConfirmPlan(false)}>Cancel</Button><Button type="button" variant="primary" onClick={applyPlan}>Apply Changes</Button></div>
+          </Dialog>
 
           <CategoryBreakdown categories={analysis.categories} />
 

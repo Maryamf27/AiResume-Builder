@@ -2,18 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, ArrowLeft, BriefcaseBusiness, CheckCircle2, LayoutTemplate, Loader2, Pencil, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, LayoutTemplate, Loader2, Pencil } from "lucide-react";
 import DownloadButton from "@/components/resume/builder/download-button";
 import { useResumeBuilder, type PersistenceMode, type SaveStatus } from "@/components/resume/builder/resume-builder-context";
 import Button from "@/components/ui/button";
 
-export default function BuilderHeader({
-  onOpenAtsAnalysis,
-  onOpenJobAnalysis,
-}: {
-  onOpenAtsAnalysis: () => void;
-  onOpenJobAnalysis: () => void;
-}) {
+export default function BuilderHeader() {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const {
@@ -110,26 +104,6 @@ export default function BuilderHeader({
               onRetry={retrySave}
             />
           )}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onOpenAtsAnalysis}
-            title="Analyze ATS compatibility"
-          >
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden xl:inline">ATS Analysis</span>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onOpenJobAnalysis}
-            title="Analyze job description"
-          >
-            <BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden xl:inline">Job Analysis</span>
-          </Button>
           <Button
             type="button"
             variant="outline"

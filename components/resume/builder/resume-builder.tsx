@@ -13,18 +13,22 @@ import ActiveSectionForm from "@/components/resume/builder/active-section-form";
 import PreviewPane from "@/components/resume/builder/preview-pane";
 import TemplatesDialog from "@/components/resume/builder/templates-dialog";
 import AtsAnalysisPanel from "@/components/resume/ats-analysis";
-import JobAnalysisPanel from "@/components/resume/job-analysis";
+import CareerTailoringHandoff from "@/components/resume/builder/career-tailoring-handoff";
 
 export default function ResumeBuilder({
   resumeId,
   initialTemplateSlug,
   startNew,
+  initialPanel,
+  careerTailoring = false,
 }: {
   resumeId?: string;
   initialTemplateSlug?: string;
   startNew?: boolean;
+  initialPanel?: "ats" | null;
+  careerTailoring?: boolean;
 }) {
-  const [activePanel, setActivePanel] = useState<"ats" | "job" | null>(null);
+  const [activePanel, setActivePanel] = useState<"ats" | null>(initialPanel ?? null);
 
   return (
     <ResumeBuilderProvider
@@ -32,7 +36,7 @@ export default function ResumeBuilder({
       initialTemplateSlug={initialTemplateSlug}
       startNew={startNew}
     >
-      <ResumeBuilderShell activePanel={activePanel} setActivePanel={setActivePanel} />
+      <ResumeBuilderShell activePanel={activePanel} setActivePanel={setActivePanel} careerTailoring={careerTailoring} />
     </ResumeBuilderProvider>
   );
 }
@@ -40,9 +44,11 @@ export default function ResumeBuilder({
 function ResumeBuilderShell({
   activePanel,
   setActivePanel,
+  careerTailoring,
 }: {
-  activePanel: "ats" | "job" | null;
-  setActivePanel: (value: "ats" | "job" | null) => void;
+  activePanel: "ats" | null;
+  setActivePanel: (value: "ats" | null) => void;
+  careerTailoring: boolean;
 }) {
   const [mobileView, setMobileView] = useState<"edit" | "preview">("edit");
 
@@ -50,16 +56,11 @@ function ResumeBuilderShell({
     return <AtsAnalysisPanel onClose={() => setActivePanel(null)} />;
   }
 
-  if (activePanel === "job") {
-    return <JobAnalysisPanel onClose={() => setActivePanel(null)} />;
-  }
-
   return (
+    <>
+    {careerTailoring && <CareerTailoringHandoff />}
     <div className="flex min-h-svh w-full flex-col overflow-x-hidden bg-cream">
-      <BuilderHeader
-        onOpenAtsAnalysis={() => setActivePanel("ats")}
-        onOpenJobAnalysis={() => setActivePanel("job")}
-      />
+      <BuilderHeader />
       <TemplatesDialog />
 
       <div className="mx-auto w-full max-w-7xl flex-1 overflow-x-hidden px-5 py-6 sm:px-8 sm:py-8">
@@ -106,5 +107,6 @@ function ResumeBuilderShell({
         </div>
       </div>
     </div>
+    </>
   );
 }
