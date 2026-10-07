@@ -25,7 +25,7 @@ export function buildResumeDocument(
   filename: string
 ): string {
   const source: TemplateSource = template
-    ? { html: template.html, css: template.css }
+    ? template
     : { html: STARTER_HTML, css: STARTER_CSS };
   const doc = renderTemplateDocument(source, data);
   const title = filename.replace(/\.pdf$/i, "").replace(/</g, "");

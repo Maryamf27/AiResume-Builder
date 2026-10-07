@@ -8,13 +8,13 @@ import { renderTemplateDocument } from "@/lib/templates/render";
 import { sampleResume } from "@/lib/templates/sample-data";
 
 type GalleryRow = Pick<Database["public"]["Tables"]["templates"]["Row"],
-  "id" | "name" | "slug" | "category" | "description" | "html" | "css">;
+  "id" | "name" | "slug" | "category" | "description" | "html" | "css" | "code">;
 type TemplateClient = SupabaseClient<Database>;
 
 async function queryPublishedTemplates(client: TemplateClient, limit?: number): Promise<GalleryRow[]> {
   let query = client
     .from("templates")
-    .select("id, name, slug, category, description, html, css")
+    .select("id, name, slug, category, description, html, css, code")
     .eq("is_published", true)
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
@@ -41,7 +41,7 @@ function renderGalleryRows(rows: GalleryRow[], limit?: number): GalleryTemplate[
         name: template.name,
         category: template.category,
         description: template.description,
-        srcDoc: renderTemplateDocument({ html: template.html, css: template.css }, sampleResume),
+        srcDoc: renderTemplateDocument(template, sampleResume),
       });
     } catch (error) {
       // One broken template must not take the whole catalogue down.

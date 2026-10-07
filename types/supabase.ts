@@ -6,6 +6,11 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+export interface TemplateCode {
+  html: string;
+  css: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -72,6 +77,8 @@ export interface Database {
           category: string | null;
           html: string;
           css: string;
+          prompt: string | null;
+          code: TemplateCode | null;
           thumbnail_url: string | null;
           version: number;
           is_published: boolean;
@@ -88,6 +95,8 @@ export interface Database {
           category?: string | null;
           html: string;
           css?: string;
+          prompt?: string | null;
+          code?: TemplateCode | null;
           thumbnail_url?: string | null;
           version?: number;
           is_published?: boolean;
@@ -104,6 +113,8 @@ export interface Database {
           category?: string | null;
           html?: string;
           css?: string;
+          prompt?: string | null;
+          code?: TemplateCode | null;
           thumbnail_url?: string | null;
           version?: number;
           is_published?: boolean;

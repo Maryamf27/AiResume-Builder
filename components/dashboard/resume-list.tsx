@@ -65,7 +65,7 @@ export default function ResumeList({
     (async () => {
       const { data } = await createClient()
         .from("templates")
-        .select("id, name, slug, category, description, html, css")
+        .select("id, name, slug, category, description, html, css, code")
         .eq("is_published", true)
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true });

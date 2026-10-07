@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import TemplateForm from "@/components/admin/template-form";
 import { requireAdmin } from "@/lib/admin/require-admin";
 import { updateTemplateAction } from "@/app/admin/templates/actions";
+import { resolveTemplateSource } from "@/lib/templates/render";
 
 export const metadata: Metadata = { title: "Edit template · Admin" };
 
@@ -16,6 +17,7 @@ export default async function EditTemplatePage({
 
   const { data: t } = await supabase.from("templates").select("*").eq("id", id).maybeSingle();
   if (!t) notFound();
+  const source = resolveTemplateSource(t);
 
   return (
     <div>
@@ -30,8 +32,8 @@ export default async function EditTemplatePage({
           category: t.category ?? "",
           sortOrder: t.sort_order,
           isPublished: t.is_published,
-          html: t.html,
-          css: t.css,
+          html: source.html,
+          css: source.css,
         }}
       />
     </div>
