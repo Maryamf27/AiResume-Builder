@@ -55,9 +55,16 @@ export async function downloadResumePdf(
   filename: string,
   promptForSaveLocation = false
 ): Promise<void> {
-  const pickerWindow = window as Window & {
-    showSaveFilePicker?: (options: SaveFilePickerOptions) => Promise<SaveFileHandle>;
-  };
+  const pdf = await generateResumePdf(doc, filename);
+  await saveGeneratedResumePdf(pdf, filename, promptForSaveLocation);
+}
+
+export function supportsSaveFilePicker(): boolean {
+  return typeof window !== "undefined" &&
+    typeof (window as Window & { showSaveFilePicker?: unknown }).showSaveFilePicker === "function";
+}
+
+export async function generateResumePdf(doc: string, filename: string): Promise<Blob> {
   const response = await fetch("/api/resume-pdf", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -81,8 +88,17 @@ export async function downloadResumePdf(
   if (bytes.byteLength < 5 || new TextDecoder().decode(bytes.subarray(0, 5)) !== "%PDF-") {
     throw new Error("PDF generation returned an invalid file. Please try again.");
   }
-  const pdf = new Blob([bytes], { type: "application/pdf" });
+  return new Blob([bytes], { type: "application/pdf" });
+}
 
+export async function saveGeneratedResumePdf(
+  pdf: Blob,
+  filename: string,
+  promptForSaveLocation = false
+): Promise<void> {
+  const pickerWindow = window as Window & {
+    showSaveFilePicker?: (options: SaveFilePickerOptions) => Promise<SaveFileHandle>;
+  };
   const fileHandle = promptForSaveLocation && pickerWindow.showSaveFilePicker
     ? await pickerWindow.showSaveFilePicker({
         suggestedName: filename,

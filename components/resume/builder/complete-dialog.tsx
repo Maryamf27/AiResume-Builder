@@ -17,7 +17,7 @@ export default function CompleteDialog({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const { saveStatus, saveError, persistenceMode, retrySave, completeness } = useResumeBuilder();
-  const { download, preparing, error: downloadError } = useResumeDownload();
+  const { download, preparing, error: downloadError, pdfReady } = useResumeDownload();
 
   useEffect(() => {
     const dialog = ref.current;
@@ -93,8 +93,13 @@ export default function CompleteDialog({
             ) : (
               <Download className="h-4 w-4" aria-hidden="true" />
             )}
-            {preparing ? "Preparing PDF…" : "Download as PDF"}
+            {preparing ? "Preparing PDF…" : pdfReady ? "Save PDF As…" : "Download as PDF"}
           </Button>
+          {pdfReady && (
+            <p className="text-xs text-charcoal/60" role="status">
+              Your PDF is ready. Choose where to save it.
+            </p>
+          )}
           {downloadError && (
             <p role="alert" className="text-sm text-destructive">
               {downloadError}

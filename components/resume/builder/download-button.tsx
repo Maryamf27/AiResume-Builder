@@ -10,7 +10,7 @@ import { useResumeDownload } from "@/components/resume/builder/use-resume-downlo
 
 export default function DownloadButton() {
   const { persistenceMode } = useResumeBuilder();
-  const { download, preparing, error } = useResumeDownload();
+  const { download, preparing, error, pdfReady } = useResumeDownload();
   const [showGuestPrompt, setShowGuestPrompt] = useState(false);
 
   async function handleDownload() {
@@ -37,7 +37,7 @@ export default function DownloadButton() {
         ) : (
           <>
             <Download data-icon="inline-start" className="h-4 w-4" aria-hidden="true" />
-            Download
+            {pdfReady ? "Save As" : "Download"}
           </>
         )}
       </Button>
