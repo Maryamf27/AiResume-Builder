@@ -6,7 +6,6 @@ import {
   Eye,
   FilePenLine,
   LayoutTemplate,
-  LogOut,
   UserRound,
 } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
@@ -373,12 +372,6 @@ function HeroActions({ auth }: { auth: PublicAuthInfo }) {
         <ButtonLink href={routes.createResume} variant="outline" size="lg">
           Open Builder
         </ButtonLink>
-        <form action={routes.signOut} method="post">
-          <Button variant="outline" size="lg">
-            <LogOut className="h-4 w-4" aria-hidden="true" />
-            Sign out
-          </Button>
-        </form>
       </div>
     );
   }

@@ -58,13 +58,6 @@ export async function downloadResumePdf(
   const pickerWindow = window as Window & {
     showSaveFilePicker?: (options: SaveFilePickerOptions) => Promise<SaveFileHandle>;
   };
-  const fileHandle = promptForSaveLocation && pickerWindow.showSaveFilePicker
-    ? await pickerWindow.showSaveFilePicker({
-        suggestedName: filename,
-        types: [{ description: "PDF document", accept: { "application/pdf": [".pdf"] } }],
-      })
-    : null;
-
   const response = await fetch("/api/resume-pdf", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -80,7 +73,23 @@ export async function downloadResumePdf(
     throw new Error(message);
   }
 
-  const pdf = await response.blob();
+  if (!(response.headers.get("content-type") ?? "").toLowerCase().startsWith("application/pdf")) {
+    throw new Error("PDF generation returned an invalid response. Please try again.");
+  }
+
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.byteLength < 5 || new TextDecoder().decode(bytes.subarray(0, 5)) !== "%PDF-") {
+    throw new Error("PDF generation returned an invalid file. Please try again.");
+  }
+  const pdf = new Blob([bytes], { type: "application/pdf" });
+
+  const fileHandle = promptForSaveLocation && pickerWindow.showSaveFilePicker
+    ? await pickerWindow.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: "PDF document", accept: { "application/pdf": [".pdf"] } }],
+      })
+    : null;
+
   if (fileHandle) {
     const writable = await fileHandle.createWritable();
     await writable.write(pdf);

@@ -13,6 +13,18 @@ const TTL_MS = 5 * 60 * 1_000;
 const cache = new Map<string, { value: CachedResumeSummary[]; expiresAt: number }>();
 const inFlight = new Map<string, Promise<CachedResumeSummary[]>>();
 const generations = new Map<string, number>();
+const CACHE_CHANGE_EVENT = "resume-summary-cache-change";
+
+function notifyCacheChange(userId: string | null, cleared = false): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(CACHE_CHANGE_EVENT, { detail: { userId, cleared } }));
+  }
+}
+
+export function getCachedResumeSummaries(userId: string): CachedResumeSummary[] | null {
+  const current = cache.get(userId);
+  return current && current.expiresAt > Date.now() ? current.value : null;
+}
 
 export function getResumeSummaries(userId: string): Promise<CachedResumeSummary[]> {
   const current = cache.get(userId);
@@ -68,6 +80,7 @@ export function updateCachedResume(userId: string, resume: CachedResumeSummary):
   value.push({ ...existing, ...resume });
   value.sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
   cache.set(userId, { value, expiresAt: Date.now() + TTL_MS });
+  notifyCacheChange(userId);
 }
 
 export function removeCachedResume(userId: string, resumeId: string): void {
@@ -77,6 +90,7 @@ export function removeCachedResume(userId: string, resumeId: string): void {
     value: current.value.filter((item) => item.id !== resumeId),
     expiresAt: Date.now() + TTL_MS,
   });
+  notifyCacheChange(userId);
 }
 
 export function clearResumeCache(userId?: string): void {
@@ -84,14 +98,18 @@ export function clearResumeCache(userId?: string): void {
     generations.set(userId, (generations.get(userId) ?? 0) + 1);
     cache.delete(userId);
     inFlight.delete(userId);
+    notifyCacheChange(userId, true);
   } else {
     for (const key of new Set([...cache.keys(), ...inFlight.keys(), ...generations.keys()])) {
       generations.set(key, (generations.get(key) ?? 0) + 1);
     }
     cache.clear();
     inFlight.clear();
+    notifyCacheChange(null, true);
   }
 }
+
+export const resumeCacheChangeEvent = CACHE_CHANGE_EVENT;
 
 function log(result: "hit" | "miss" | "in-flight" | "loaded", durationMs: number): void {
   if (process.env.NODE_ENV !== "development") return;

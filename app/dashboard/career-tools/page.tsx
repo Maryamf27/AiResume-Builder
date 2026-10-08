@@ -16,13 +16,13 @@ const tools = [
     icon: BriefcaseBusiness,
   },
   {
-    href: "/dashboard/career-tools/job-analysis",
+    href: "/dashboard/career-tools/job-analysis?view=match",
     title: "Job Match",
     description: "Compare one of your saved resumes with an analyzed job.",
     icon: BarChart3,
   },
   {
-    href: "/dashboard/career-tools/job-analysis",
+    href: "/dashboard/career-tools/job-analysis?view=improvements",
     title: "AI Resume Improvements",
     description: "Review tailored suggestions after matching a resume to a job.",
     icon: WandSparkles,

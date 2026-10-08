@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { BriefcaseBusiness, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import Button from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -12,6 +13,7 @@ import { useResumeSummaries } from "@/lib/resume/use-resume-summaries";
 const MIN_JOB_DESCRIPTION_LENGTH = 80;
 const MAX_JOB_DESCRIPTION_LENGTH = 20_000;
 const HANDOFF_KEY = "career-tailoring-handoff";
+const WORKFLOW_KEY = "career-tools-job-workflow";
 
 export interface CareerResumeOption { id: string; title: string; updatedAt: string }
 
@@ -19,16 +21,49 @@ export default function CareerJobAnalysis({ userId }: { userId: string }) {
   const { resumes: cachedResumes } = useResumeSummaries(userId);
   const resumes: CareerResumeOption[] = (cachedResumes ?? []).map((resume) => ({ id: resume.id, title: resume.title, updatedAt: resume.updatedAt }));
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedView = searchParams.get("view");
+  const view = requestedView === "match" || requestedView === "improvements" ? requestedView : "analysis";
   const [jobDescription, setJobDescription] = useState("");
   const [analysis, setAnalysis] = useState<JobAnalysis | null>(null);
   const [analysisBusy, setAnalysisBusy] = useState(false);
   const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
   const [selectedResume, setSelectedResume] = useState<ResumeData | null>(null);
+  const [selectedResumeUpdatedAt, setSelectedResumeUpdatedAt] = useState<string | null>(null);
   const [resumeBusy, setResumeBusy] = useState(false);
   const [match, setMatch] = useState<MatchAnalysis | null>(null);
   const [matchBusy, setMatchBusy] = useState(false);
   const [tailorBusy, setTailorBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    try {
+      const raw = window.sessionStorage.getItem(WORKFLOW_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { userId?: string; jobDescription?: string; analysis?: unknown; match?: unknown; resumeId?: string; resumeUpdatedAt?: string };
+      if (saved.userId !== userId) return;
+      const parsedAnalysis = JobAnalysisSchema.safeParse(saved.analysis);
+      if (!parsedAnalysis.success || typeof saved.jobDescription !== "string") return;
+      setJobDescription(saved.jobDescription);
+      setAnalysis(parsedAnalysis.data);
+      if (typeof saved.resumeId !== "string") return;
+      setSelectedResumeId(saved.resumeId);
+      void (async () => {
+        const { data, error: queryError } = await createClient().from("resumes").select("data, updated_at").eq("user_id", userId).eq("id", saved.resumeId!).maybeSingle();
+        if (!active || queryError || !data) return;
+        const parsedResume = ResumeDataSchema.safeParse(data.data);
+        if (!parsedResume.success) return;
+        setSelectedResume(parsedResume.data);
+        setSelectedResumeUpdatedAt(data.updated_at);
+        const parsedMatch = MatchAnalysisSchema.safeParse(saved.match);
+        if (parsedMatch.success && saved.resumeUpdatedAt === data.updated_at) setMatch(parsedMatch.data);
+      })();
+    } catch (caught) {
+      console.warn("Could not restore Career Tools workflow context:", caught);
+    }
+    return () => { active = false; };
+  }, [userId]);
 
   async function analyzeJob() {
     const description = jobDescription.trim();
@@ -44,6 +79,7 @@ export default function CareerJobAnalysis({ userId }: { userId: string }) {
       const parsed = JobAnalysisSchema.safeParse(payload?.data);
       if (!response.ok || payload?.success !== true || !parsed.success) throw new Error(payload?.error || "We couldn't analyze this job description. Please try again.");
       setAnalysis(parsed.data);
+      window.sessionStorage.setItem(WORKFLOW_KEY, JSON.stringify({ userId, jobDescription: description, analysis: parsed.data }));
     } catch (caught) { setError(caught instanceof Error ? caught.message : "We couldn't analyze this job description. Please try again."); }
     finally { setAnalysisBusy(false); }
   }
@@ -53,11 +89,13 @@ export default function CareerJobAnalysis({ userId }: { userId: string }) {
     if (!id) return;
     setResumeBusy(true);
     try {
-      const { data, error: queryError } = await createClient().from("resumes").select("data").eq("id", id).maybeSingle();
+      const { data, error: queryError } = await createClient().from("resumes").select("data, updated_at").eq("user_id", userId).eq("id", id).maybeSingle();
       if (queryError || !data) throw new Error("Couldn't load that resume. Please choose it again.");
       const parsed = ResumeDataSchema.safeParse(data.data);
       if (!parsed.success) throw new Error("This saved resume couldn't be read. Please open and save it in the builder first.");
       setSelectedResume(parsed.data);
+      setSelectedResumeUpdatedAt(data.updated_at);
+      if (analysis) window.sessionStorage.setItem(WORKFLOW_KEY, JSON.stringify({ userId, jobDescription, analysis, resumeId: id, resumeUpdatedAt: data.updated_at }));
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Couldn't load that resume."); }
     finally { setResumeBusy(false); }
   }
@@ -71,6 +109,7 @@ export default function CareerJobAnalysis({ userId }: { userId: string }) {
       const parsed = MatchAnalysisSchema.safeParse(payload?.data);
       if (!response.ok || payload?.success !== true || !parsed.success) throw new Error(payload?.error || "We couldn't match this resume to the job. Please try again.");
       setMatch(parsed.data);
+      if (selectedResumeId && selectedResumeUpdatedAt) window.sessionStorage.setItem(WORKFLOW_KEY, JSON.stringify({ userId, jobDescription, analysis, resumeId: selectedResumeId, resumeUpdatedAt: selectedResumeUpdatedAt, match: parsed.data }));
     } catch (caught) { setError(caught instanceof Error ? caught.message : "We couldn't match this resume to the job."); }
     finally { setMatchBusy(false); }
   }
@@ -89,14 +128,22 @@ export default function CareerJobAnalysis({ userId }: { userId: string }) {
     finally { setTailorBusy(false); }
   }
 
+  if (view !== "analysis" && !analysis) {
+    const label = view === "match" ? "Job Match" : "AI Resume Improvements";
+    return <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-8 sm:py-8">
+      <header className="mb-6 text-center"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-charcoal/55">Career Tools</p><h1 className="mt-1 text-2xl font-semibold text-charcoal sm:text-3xl">{label}</h1><p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-charcoal/65">{view === "match" ? "Analyze a job description first. Your analysis will be available here for matching with a saved resume." : "Complete a Job Match first. Your match and resume will be used to prepare tailored suggestions."}</p></header>
+      <section className="rounded-xl border border-cream-dark bg-white p-6 text-center"><p className="text-sm text-charcoal/70">{view === "match" ? "There is no analyzed job in this browser session yet." : "There is no completed job match in this browser session yet."}</p><Link href="/dashboard/career-tools/job-analysis" className="mt-4 inline-flex rounded-md bg-olive px-4 py-2 text-sm font-medium text-white">Go to Job Analysis</Link></section>
+    </main>;
+  }
+
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-8 sm:py-8">
-      <header className="mb-6 text-center"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-charcoal/55">Career Tools</p><h1 className="mt-1 text-2xl font-semibold text-charcoal sm:text-3xl">Job Analysis</h1><p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-charcoal/65">Understand what an employer is looking for. You can analyze a job before choosing a resume.</p></header>
-      <section className="rounded-xl border border-cream-dark bg-white p-5 sm:p-6">
+      <header className="mb-6 text-center"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-charcoal/55">Career Tools</p><h1 className="mt-1 text-2xl font-semibold text-charcoal sm:text-3xl">{view === "analysis" ? "Job Analysis" : view === "match" ? "Job Match" : "AI Resume Improvements"}</h1><p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-charcoal/65">{view === "analysis" ? "Understand what an employer is looking for. You can analyze a job before choosing a resume." : view === "match" ? "Use the analyzed job and a saved resume to review how well they fit." : "Review improvements based on your analyzed job, resume, and match."}</p></header>
+      {view === "analysis" && <section className="rounded-xl border border-cream-dark bg-white p-5 sm:p-6">
         <label htmlFor="career-job-description" className="mb-3 flex items-center gap-2 text-lg font-semibold text-charcoal"><BriefcaseBusiness className="h-4 w-4 text-olive" />Paste a job description</label>
-        <textarea id="career-job-description" value={jobDescription} onChange={(event) => { setJobDescription(event.target.value); setAnalysis(null); setMatch(null); }} placeholder="Paste the full job description here..." maxLength={MAX_JOB_DESCRIPTION_LENGTH} className="min-h-56 w-full rounded-xl border border-cream-dark bg-cream-light px-4 py-3 text-sm leading-6 text-charcoal outline-none focus:border-olive focus:ring-2 focus:ring-olive/20" />
+        <textarea id="career-job-description" value={jobDescription} onChange={(event) => { setJobDescription(event.target.value); setAnalysis(null); setMatch(null); setSelectedResume(null); setSelectedResumeId(null); window.sessionStorage.removeItem(WORKFLOW_KEY); }} placeholder="Paste the full job description here..." maxLength={MAX_JOB_DESCRIPTION_LENGTH} className="min-h-56 w-full rounded-xl border border-cream-dark bg-cream-light px-4 py-3 text-sm leading-6 text-charcoal outline-none focus:border-olive focus:ring-2 focus:ring-olive/20" />
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3"><span className="text-xs text-charcoal/55">{jobDescription.trim().length}/{MAX_JOB_DESCRIPTION_LENGTH} characters</span><Button type="button" variant="primary" disabled={analysisBusy} onClick={() => void analyzeJob()}>{analysisBusy ? <><Loader2 className="h-4 w-4 animate-spin" />Analyzing job…</> : <><Sparkles className="h-4 w-4" />Analyze Job</>}</Button></div>
-      </section>
+      </section>}
 
       {error && <p className="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive" role="alert">{error}</p>}
       {analysis && <div className="mt-6 space-y-5">

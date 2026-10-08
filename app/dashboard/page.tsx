@@ -48,8 +48,8 @@ export default async function DashboardPage() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <ShortcutCard href="/dashboard/career-tools/ats-analysis" icon={<Sparkles className="h-5 w-5" aria-hidden="true" />} title="ATS Analysis" text="Check a saved resume’s ATS compatibility and review improvements." />
           <ShortcutCard href="/dashboard/career-tools/job-analysis" icon={<BriefcaseBusiness className="h-5 w-5" aria-hidden="true" />} title="Job Analysis" text="Understand the skills and requirements in a job posting." />
-          <ShortcutCard href="/dashboard/career-tools/job-analysis" icon={<BarChart3 className="h-5 w-5" aria-hidden="true" />} title="Job Match" text="Compare one of your saved resumes with an analyzed job." />
-          <ShortcutCard href="/dashboard/career-tools/job-analysis" icon={<WandSparkles className="h-5 w-5" aria-hidden="true" />} title="AI Resume Improvements" text="Review tailored suggestions after matching a resume to a job." />
+          <ShortcutCard href="/dashboard/career-tools/job-analysis?view=match" icon={<BarChart3 className="h-5 w-5" aria-hidden="true" />} title="Job Match" text="Compare one of your saved resumes with an analyzed job." />
+          <ShortcutCard href="/dashboard/career-tools/job-analysis?view=improvements" icon={<WandSparkles className="h-5 w-5" aria-hidden="true" />} title="AI Resume Improvements" text="Review tailored suggestions after matching a resume to a job." />
         </div>
       </section>
 
