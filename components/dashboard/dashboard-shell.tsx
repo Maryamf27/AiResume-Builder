@@ -18,6 +18,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { SITE_NAME } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import { clearResumeCache } from "@/lib/resume/client-cache";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -39,6 +40,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     setSigningOut(true);
     const supabase = createClient();
     await supabase.auth.signOut();
+    clearResumeCache();
     router.push("/");
     router.refresh();
   }

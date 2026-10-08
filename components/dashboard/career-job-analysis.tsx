@@ -7,6 +7,7 @@ import Button from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { JobAnalysisSchema, MatchAnalysisSchema, ResumeDataSchema, TailoringAnalysisSchema, type JobAnalysis, type MatchAnalysis, type TailoringAnalysis } from "@/lib/ai/schemas";
 import type { ResumeData } from "@/types/resume";
+import { useResumeSummaries } from "@/lib/resume/use-resume-summaries";
 
 const MIN_JOB_DESCRIPTION_LENGTH = 80;
 const MAX_JOB_DESCRIPTION_LENGTH = 20_000;
@@ -14,7 +15,9 @@ const HANDOFF_KEY = "career-tailoring-handoff";
 
 export interface CareerResumeOption { id: string; title: string; updatedAt: string }
 
-export default function CareerJobAnalysis({ resumes }: { resumes: CareerResumeOption[] }) {
+export default function CareerJobAnalysis({ userId }: { userId: string }) {
+  const { resumes: cachedResumes } = useResumeSummaries(userId);
+  const resumes: CareerResumeOption[] = (cachedResumes ?? []).map((resume) => ({ id: resume.id, title: resume.title, updatedAt: resume.updatedAt }));
   const router = useRouter();
   const [jobDescription, setJobDescription] = useState("");
   const [analysis, setAnalysis] = useState<JobAnalysis | null>(null);

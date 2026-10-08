@@ -38,6 +38,8 @@ import { createGuestPersistenceAdapter } from "@/lib/resume/persistence/guest-ad
 import { createSupabasePersistenceAdapter } from "@/lib/resume/persistence/supabase-adapter";
 import type { ResumePersistenceAdapter } from "@/lib/resume/persistence/types";
 import type { PublishedTemplate } from "@/lib/templates/types";
+import { loadPublishedTemplatesClient } from "@/lib/templates/client-cache";
+import { updateCachedResume } from "@/lib/resume/client-cache";
 import { TailoringChangeSchema, type TailoringChange } from "@/lib/ai/schemas";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -311,14 +313,8 @@ export function ResumeBuilderProvider({
     let cancelled = false;
     (async () => {
       try {
-        const { data, error } = await createClient()
-          .from("templates")
-          .select("id, name, slug, category, description, html, css, code")
-          .eq("is_published", true)
-          .order("sort_order", { ascending: true })
-          .order("created_at", { ascending: true });
+        const data = await loadPublishedTemplatesClient();
         if (cancelled) return;
-        if (error) throw error;
         setTemplates(data ?? []);
         setTemplatesStatus("ready");
       } catch (err) {
@@ -384,6 +380,14 @@ export function ResumeBuilderProvider({
           persistedRef.current = true;
           if (firstSave && startNew && typeof window !== "undefined") {
             window.history.replaceState(null, "", `/builder?id=${recordIdRef.current}`);
+          }
+          if (userId) {
+            updateCachedResume(userId, {
+              id: recordIdRef.current,
+              title: title || DEFAULT_RESUME_TITLE,
+              createdAt: createdAtRef.current,
+              updatedAt: new Date().toISOString(),
+            });
           }
         }
         setSaveStatus("saved");

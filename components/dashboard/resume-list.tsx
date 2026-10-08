@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -27,6 +27,10 @@ import {
 import { buildResumeDocument, downloadResumePdf, resumePdfFilename } from "@/lib/resume/pdf";
 import { createClient } from "@/lib/supabase/client";
 import type { PublishedTemplate } from "@/lib/templates/types";
+import { loadPublishedTemplatesClient } from "@/lib/templates/client-cache";
+import { removeCachedResume, updateCachedResume } from "@/lib/resume/client-cache";
+import { useResumeSummaries } from "@/lib/resume/use-resume-summaries";
+import type { ResumeData } from "@/types/resume";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -40,13 +44,12 @@ function formatDate(iso: string): string {
 
 export default function ResumeList({
   userId,
-  initialResumes,
 }: {
   userId: string;
-  initialResumes: ResumeListItem[];
 }) {
   const router = useRouter();
-  const [resumes, setResumes] = useState(initialResumes);
+  const { resumes: cachedResumes } = useResumeSummaries(userId);
+  const resumes: ResumeListItem[] = (cachedResumes ?? []).map((resume) => ({ ...resume, data: { templateId: resume.templateId } as ResumeData }));
   const [templates, setTemplates] = useState<PublishedTemplate[]>([]);
   const [templatesLoaded, setTemplatesLoaded] = useState(false);
   const [previewing, setPreviewing] = useState<ResumeListItem | null>(null);
@@ -58,22 +61,21 @@ export default function ResumeList({
   const [renameValue, setRenameValue] = useState("");
   const [renameBusy, setRenameBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [loadingDocumentId, setLoadingDocumentId] = useState<string | null>(null);
 
   // Published templates are needed to render downloads; readable by everyone.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await createClient()
-        .from("templates")
-        .select("id, name, slug, category, description, html, css, code")
-        .eq("is_published", true)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true });
+      const data = await loadPublishedTemplatesClient();
       if (!cancelled) {
         setTemplates(data ?? []);
         setTemplatesLoaded(true);
       }
-    })();
+    })().catch((error: unknown) => {
+      console.error("Could not load templates for resume previews:", error);
+      setTemplatesLoaded(true);
+    });
     return () => {
       cancelled = true;
     };
@@ -88,6 +90,24 @@ export default function ResumeList({
   // Same template choice as a download: the resume's own, else the first published.
   function templateFor(resume: ResumeListItem): PublishedTemplate | null {
     return templates.find((t) => t.id === resume.data?.templateId) ?? templates[0] ?? null;
+  }
+
+  async function loadFullResume(resume: ResumeListItem): Promise<ResumeListItem | null> {
+    const { data, error } = await createClient().from("resumes").select("data").eq("id", resume.id).eq("user_id", userId).maybeSingle();
+    if (error || !data) return null;
+    return { ...resume, data: data.data as unknown as ResumeData };
+  }
+
+  async function openPreview(resume: ResumeListItem) {
+    setActionError(null);
+    setLoadingDocumentId(resume.id);
+    const fullResume = await loadFullResume(resume);
+    setLoadingDocumentId(null);
+    if (!fullResume) {
+      setActionError("Couldn't load this resume for preview. Please try again.");
+      return;
+    }
+    setPreviewing(fullResume);
   }
 
   const preview = useMemo(() => {
@@ -108,9 +128,11 @@ export default function ResumeList({
     setDownloadingId(resume.id);
     setActionError(null);
     try {
-      const template = templateFor(resume);
+      const fullResume = await loadFullResume(resume);
+      if (!fullResume) throw new Error("Couldn't load this resume. Please try again.");
+      const template = templateFor(fullResume);
       const filename = resumePdfFilename(resume.title);
-      const doc = buildResumeDocument(template, resume.data, filename);
+      const doc = buildResumeDocument(template, fullResume.data, filename);
       await downloadResumePdf(doc, filename);
       // Only count a download after the PDF has been generated successfully.
       if (template) recordTemplateEvent(template.id, userId, "downloaded");
@@ -133,7 +155,7 @@ export default function ResumeList({
       setDeleting(null);
       return;
     }
-    setResumes((prev) => prev.filter((r) => r.id !== deleting.id));
+    removeCachedResume(userId, deleting.id);
     setDeleting(null);
     router.refresh();
   }
@@ -149,12 +171,12 @@ export default function ResumeList({
       return;
     }
     const newTitle = renameValue.trim() || "My Resume";
-    setResumes((prev) =>
-      prev.map((r) => (r.id === renaming.id ? { ...r, title: newTitle } : r))
-    );
+    updateCachedResume(userId, { id: renaming.id, title: newTitle, createdAt: renaming.createdAt, updatedAt: new Date().toISOString() });
     setRenaming(null);
     router.refresh();
   }
+
+  if (!cachedResumes) return <div className="h-20 animate-pulse rounded-lg bg-cream-dark/40" aria-label="Loading resumes" />;
 
   if (resumes.length === 0) {
     return (
@@ -201,8 +223,8 @@ export default function ResumeList({
               <IconAction
                 label="Preview"
                 tone="outline"
-                onClick={() => setPreviewing(resume)}
-                disabled={!templatesLoaded}
+                onClick={() => void openPreview(resume)}
+                disabled={!templatesLoaded || loadingDocumentId !== null}
               >
                 <Eye className="h-4 w-4" aria-hidden="true" />
               </IconAction>
@@ -311,3 +333,4 @@ export default function ResumeList({
 }
 
 export { type ResumeListItem };
+

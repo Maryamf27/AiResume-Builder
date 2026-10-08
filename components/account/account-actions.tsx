@@ -7,6 +7,7 @@ import Button from "@/components/ui/button";
 import Dialog from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+import { clearResumeCache } from "@/lib/resume/client-cache";
 
 const CONFIRM_WORD = "DELETE";
 
@@ -26,6 +27,7 @@ export function SignOutEverywhere() {
       setError("Couldn't sign you out everywhere. Please try again.");
       return;
     }
+    clearResumeCache();
     router.push("/");
     router.refresh();
   }
@@ -76,6 +78,7 @@ export function DeleteAccount() {
       return;
     }
     await supabase.auth.signOut();
+    clearResumeCache();
     router.push("/");
     router.refresh();
   }
