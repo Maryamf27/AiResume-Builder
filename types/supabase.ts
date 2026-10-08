@@ -77,7 +77,6 @@ export interface Database {
           category: string | null;
           html: string;
           css: string;
-          prompt: string | null;
           code: TemplateCode | null;
           thumbnail_url: string | null;
           version: number;
@@ -95,7 +94,6 @@ export interface Database {
           category?: string | null;
           html: string;
           css?: string;
-          prompt?: string | null;
           code?: TemplateCode | null;
           thumbnail_url?: string | null;
           version?: number;
@@ -113,7 +111,6 @@ export interface Database {
           category?: string | null;
           html?: string;
           css?: string;
-          prompt?: string | null;
           code?: TemplateCode | null;
           thumbnail_url?: string | null;
           version?: number;

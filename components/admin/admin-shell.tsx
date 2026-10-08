@@ -79,7 +79,7 @@ export default function AdminShell({
   );
 
   const brand = (
-    <Link href="/admin" className="flex min-w-0 items-center gap-2">
+    <Link href="/" className="flex min-w-0 items-center gap-2">
       <span className="truncate font-serif text-lg text-charcoal">{SITE_NAME}</span>
       <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-olive/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-olive">
         <ShieldCheck className="h-3 w-3" aria-hidden="true" />

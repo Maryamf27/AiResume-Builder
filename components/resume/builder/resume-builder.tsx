@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Eye, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResumeBuilderProvider } from "@/components/resume/builder/resume-builder-context";
@@ -28,6 +29,7 @@ export default function ResumeBuilder({
   initialPanel?: "ats" | null;
   careerTailoring?: boolean;
 }) {
+  const router = useRouter();
   const [activePanel, setActivePanel] = useState<"ats" | null>(initialPanel ?? null);
 
   return (
@@ -36,7 +38,13 @@ export default function ResumeBuilder({
       initialTemplateSlug={initialTemplateSlug}
       startNew={startNew}
     >
-      <ResumeBuilderShell activePanel={activePanel} setActivePanel={setActivePanel} careerTailoring={careerTailoring} />
+      <ResumeBuilderShell
+        activePanel={activePanel}
+        setActivePanel={setActivePanel}
+        careerTailoring={careerTailoring}
+        atsOpenedFromDashboard={Boolean(initialPanel)}
+        onCloseAts={() => initialPanel ? router.push("/dashboard") : setActivePanel(null)}
+      />
     </ResumeBuilderProvider>
   );
 }
@@ -45,15 +53,19 @@ function ResumeBuilderShell({
   activePanel,
   setActivePanel,
   careerTailoring,
+  atsOpenedFromDashboard,
+  onCloseAts,
 }: {
   activePanel: "ats" | null;
   setActivePanel: (value: "ats" | null) => void;
   careerTailoring: boolean;
+  atsOpenedFromDashboard: boolean;
+  onCloseAts: () => void;
 }) {
   const [mobileView, setMobileView] = useState<"edit" | "preview">("edit");
 
   if (activePanel === "ats") {
-    return <AtsAnalysisPanel onClose={() => setActivePanel(null)} />;
+    return <AtsAnalysisPanel onClose={onCloseAts} backLabel={atsOpenedFromDashboard ? "Back to Dashboard" : "Back to builder"} />;
   }
 
   return (

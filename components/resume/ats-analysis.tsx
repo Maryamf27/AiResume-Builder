@@ -200,8 +200,10 @@ function ErrorDashboard({ error }: { error: string | null }) {
 
 export default function AtsAnalysisPanel({
   onClose,
+  backLabel = "Back to builder",
 }: {
   onClose: () => void;
+  backLabel?: string;
 }) {
   const { resumeData, title, updatePersonal, updateEducation, updateExperience, updateProject } = useResumeBuilder();
   const [analysis, setAnalysis] = useState<ATSAnalysisData | null>(null);
@@ -328,7 +330,7 @@ export default function AtsAnalysisPanel({
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Button type="button" variant="ghost" size="sm" onClick={onClose}>
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Back to builder
+          {backLabel}
         </Button>
       </div>
 

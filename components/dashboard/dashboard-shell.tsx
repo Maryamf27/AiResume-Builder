@@ -23,7 +23,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/resumes", label: "My Resumes", icon: FileText },
   { href: "/dashboard/templates", label: "Templates", icon: LayoutTemplate },
-  { href: "/dashboard/career-tools/job-analysis", label: "Career Tools", icon: BriefcaseBusiness },
+  { href: "/dashboard/career-tools", label: "Career Tools", icon: BriefcaseBusiness },
   { href: "/dashboard/account", label: "Account", icon: UserRound },
 ] as const;
 
@@ -88,7 +88,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen w-full overflow-x-hidden bg-cream">
       {/* Mobile top bar */}
       <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between border-b border-cream-dark/60 bg-cream-light px-5 lg:hidden">
-        <Link href="/dashboard" className="font-serif text-lg text-charcoal">
+        <Link href="/" className="font-serif text-lg text-charcoal">
           {SITE_NAME}
         </Link>
         <button
@@ -122,7 +122,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
           )}
         >
           <div className={cn("mb-8 flex items-center", sidebarCollapsed ? "justify-center" : "justify-between px-3")}>
-            <Link href="/dashboard" aria-label={sidebarCollapsed ? SITE_NAME : undefined} title={sidebarCollapsed ? SITE_NAME : undefined}>
+            <Link href="/" aria-label={sidebarCollapsed ? SITE_NAME : undefined} title={sidebarCollapsed ? SITE_NAME : undefined}>
               {sidebarCollapsed ? (
                 <span className="font-serif text-lg text-charcoal">{SITE_NAME.slice(0, 1)}</span>
               ) : (

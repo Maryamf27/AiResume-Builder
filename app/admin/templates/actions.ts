@@ -69,6 +69,7 @@ function parseForm(formData: FormData) {
       is_published: isPublished,
       html,
       css,
+      code: { html, css },
     },
   } as const;
 }
@@ -133,7 +134,7 @@ export async function createTemplateAction(
   const code = { html, css };
   const { error } = await supabase.from("templates").insert({
     name, slug, description, category, sort_order: sortOrder,
-    html, css, code, prompt, created_by: user.id,
+    html, css, code, created_by: user.id,
   });
   if (error) return { error: friendlyDbError(error.message, error.code) };
 
