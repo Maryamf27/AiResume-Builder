@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Download,
   Eye,
@@ -47,7 +46,6 @@ export default function ResumeList({
 }: {
   userId: string;
 }) {
-  const router = useRouter();
   const { resumes: cachedResumes } = useResumeSummaries(userId);
   const resumes: ResumeListItem[] = (cachedResumes ?? []).map((resume) => ({ ...resume, data: { templateId: resume.templateId } as ResumeData }));
   const [templates, setTemplates] = useState<PublishedTemplate[]>([]);
@@ -157,7 +155,6 @@ export default function ResumeList({
     }
     removeCachedResume(userId, deleting.id);
     setDeleting(null);
-    router.refresh();
   }
 
   async function handleRename() {
@@ -173,7 +170,6 @@ export default function ResumeList({
     const newTitle = renameValue.trim() || "My Resume";
     updateCachedResume(userId, { id: renaming.id, title: newTitle, createdAt: renaming.createdAt, updatedAt: new Date().toISOString() });
     setRenaming(null);
-    router.refresh();
   }
 
   if (!cachedResumes) return <div className="h-20 animate-pulse rounded-lg bg-cream-dark/40" aria-label="Loading resumes" />;

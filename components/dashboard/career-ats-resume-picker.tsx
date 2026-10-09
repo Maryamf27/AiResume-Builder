@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { ArrowLeft, FileText, Sparkles } from "lucide-react";
 import { DEFAULT_RESUME_TITLE } from "@/lib/resume/constants";
+import { useDashboardSession } from "@/components/dashboard/dashboard-session";
 import { useResumeSummaries } from "@/lib/resume/use-resume-summaries";
 
-export default function CareerAtsResumePicker({ userId }: { userId: string }) {
+export default function CareerAtsResumePicker() {
+  const { userId } = useDashboardSession();
   const { resumes, error } = useResumeSummaries(userId);
   return <main className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-8 sm:py-8">
     <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm font-medium text-charcoal/65 hover:text-charcoal"><ArrowLeft className="h-4 w-4" />Dashboard</Link>

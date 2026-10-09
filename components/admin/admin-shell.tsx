@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { adminQueryOptions } from "@/lib/admin/queries";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -35,11 +37,31 @@ export default function AdminShell({
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Warm the cache for every admin page once the shell is up, so each sidebar
+  // click shows data immediately instead of waiting on the network.
+  useEffect(() => {
+    const warm = () => {
+      void queryClient.prefetchQuery(adminQueryOptions.overview);
+      void queryClient.prefetchQuery(adminQueryOptions.users);
+      void queryClient.prefetchQuery(adminQueryOptions.templates);
+      void queryClient.prefetchQuery(adminQueryOptions.feedback);
+    };
+    const idle = window.requestIdleCallback;
+    if (idle) {
+      const handle = idle(warm, { timeout: 1500 });
+      return () => window.cancelIdleCallback(handle);
+    }
+    const timer = window.setTimeout(warm, 300);
+    return () => window.clearTimeout(timer);
+  }, [queryClient]);
 
   async function signOut() {
     if (signingOut) return;
     setSigningOut(true);
     await createClient().auth.signOut();
+    queryClient.clear();
     router.push("/");
     router.refresh();
   }
@@ -89,7 +111,7 @@ export default function AdminShell({
   );
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-cream">
+    <div className="min-h-screen w-full overflow-x-clip bg-cream">
       <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between gap-3 border-b border-cream-dark/60 bg-cream-light px-4 sm:px-5 lg:hidden">
         <div className="min-w-0 flex-1">{brand}</div>
         <button
@@ -104,8 +126,8 @@ export default function AdminShell({
       </header>
 
       {menuOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-white px-5 py-4 lg:hidden">
-          <div className="sticky top-0 mb-4 flex items-center justify-between border-b border-slate-200 bg-white py-2">
+        <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-cream-light px-5 py-4 lg:hidden">
+          <div className="sticky top-0 mb-4 flex items-center justify-between border-b border-cream-dark/60 bg-cream-light py-2">
             {brand}
             <button
               type="button"
@@ -120,21 +142,20 @@ export default function AdminShell({
         </div>
       )}
 
-      <div className="flex min-h-screen w-full flex-col lg:flex-row">
-        <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-cream-dark/60 bg-cream-light px-4 py-6 lg:flex">
-          <div className="mb-8 px-3">{brand}</div>
-          {nav}
-          {adminEmail && (
-            <p className="mt-auto truncate px-3 text-xs text-charcoal/50" title={adminEmail}>
-              Signed in as {adminEmail}
-            </p>
-          )}
-        </aside>
+      {/* Desktop sidebar: fixed to the viewport so it never moves with the page. */}
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col overflow-y-auto border-r border-cream-dark/60 bg-cream-light px-4 py-6 lg:flex">
+        <div className="mb-8 px-3">{brand}</div>
+        {nav}
+        {adminEmail && (
+          <p className="mt-auto truncate px-3 pt-6 text-xs text-charcoal/50" title={adminEmail}>
+            Signed in as {adminEmail}
+          </p>
+        )}
+      </aside>
 
-        <main className="min-w-0 flex-1 px-4 pb-24 pt-6 sm:px-6 sm:pb-24 sm:pt-8 lg:px-8 lg:py-10">
-          {children}
-        </main>
-      </div>
+      <main className="min-h-screen min-w-0 px-4 pb-24 pt-6 sm:px-6 sm:pb-24 sm:pt-8 lg:ml-60 lg:px-8 lg:py-10">
+        <div className="mx-auto w-full max-w-[1600px]">{children}</div>
+      </main>
     </div>
   );
 }

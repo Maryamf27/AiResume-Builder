@@ -50,9 +50,11 @@ export default async function proxy(request: NextRequest) {
       },
     }
   );
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() refreshes an expired session and verifies the JWT locally when
+  // possible, instead of making an Auth-server round trip on every request
+  // (including every prefetch). Pages still re-check access server-side.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const user = claimsData?.claims?.sub ? claimsData.claims : null;
 
   if ((pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) && !user) {
     const loginUrl = request.nextUrl.clone();

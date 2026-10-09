@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import PageIntro from "@/components/public/page-intro";
 import { NavTextLink } from "@/components/public/nav-links";
 import { pageMetadata } from "@/lib/seo";
-import { containerClass, routes, SITE_NAME } from "@/lib/site";
+import { routes, SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = pageMetadata({
   title: "Privacy Policy",
@@ -71,7 +71,7 @@ export default function PrivacyPage() {
       />
 
       <article className="border-t border-cream-dark/60">
-        <div className={`${containerClass} max-w-3xl space-y-10 py-14 sm:py-20`}>
+        <div className={`mx-auto w-full max-w-3xl px-5 sm:px-8 space-y-10 py-14 sm:py-20`}>
           {sections.map((section) => (
             <section key={section.title} aria-labelledby={section.title}>
               <h2

@@ -6,7 +6,7 @@ import CreateResumeButton from "@/components/dashboard/create-resume-button";
 import { DEFAULT_RESUME_TITLE } from "@/lib/resume/constants";
 import { useResumeSummaries } from "@/lib/resume/use-resume-summaries";
 
-export default function DashboardResumeOverview({ displayName, userId, templateCount }: { displayName: string; userId: string; templateCount: number }) {
+export default function DashboardResumeOverview({ displayName, userId, templateCount }: { displayName: string; userId: string; templateCount?: number }) {
   const { resumes } = useResumeSummaries(userId);
 
   const total = resumes?.length ?? 0;
@@ -20,7 +20,7 @@ export default function DashboardResumeOverview({ displayName, userId, templateC
     <dl className="mt-8 grid gap-4 sm:grid-cols-3">
       <Stat label="Resumes" value={resumes ? String(total) : "…"} />
       <Stat label="Last edited" value={lastEdited ? formatDate(lastEdited) : "—"} />
-      <Stat label="Templates available" value={String(templateCount)} />
+      <Stat label="Templates available" value={templateCount === undefined ? "…" : String(templateCount)} />
     </dl>
     <section className="mt-10" aria-labelledby="recent-heading">
       <div className="mb-4 flex items-center justify-between"><h2 id="recent-heading" className="text-sm font-semibold uppercase tracking-wide text-charcoal/50">My Resumes</h2>{total > 0 && <Link href="/dashboard/resumes" className="inline-flex items-center gap-1 text-sm font-medium text-olive hover:text-olive-dark">View all<ArrowRight className="h-3.5 w-3.5" aria-hidden="true" /></Link>}</div>

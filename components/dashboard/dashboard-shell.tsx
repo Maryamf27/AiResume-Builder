@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -18,7 +19,9 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { SITE_NAME } from "@/lib/site";
 import { cn } from "@/lib/utils";
-import { clearResumeCache } from "@/lib/resume/client-cache";
+import { useDashboardSession } from "@/components/dashboard/dashboard-session";
+import { resumeListQueryOptions } from "@/lib/resume/client-cache";
+import { publishedTemplateCountQueryOptions, publishedTemplatesQueryOptions } from "@/lib/templates/client-cache";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -34,13 +37,31 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const queryClient = useQueryClient();
+  const { userId } = useDashboardSession();
+
+  // Warm the cache once the shell is up so the first visit to each page is instant too.
+  useEffect(() => {
+    const warm = () => {
+      void queryClient.prefetchQuery(resumeListQueryOptions(userId));
+      void queryClient.prefetchQuery(publishedTemplateCountQueryOptions);
+      void queryClient.prefetchQuery(publishedTemplatesQueryOptions);
+    };
+    const idle = window.requestIdleCallback;
+    if (idle) {
+      const handle = idle(warm, { timeout: 1500 });
+      return () => window.cancelIdleCallback(handle);
+    }
+    const timer = window.setTimeout(warm, 300);
+    return () => window.clearTimeout(timer);
+  }, [queryClient, userId]);
 
   async function signOut() {
     if (signingOut) return;
     setSigningOut(true);
     const supabase = createClient();
     await supabase.auth.signOut();
-    clearResumeCache();
+    queryClient.clear();
     router.push("/");
     router.refresh();
   }
@@ -148,7 +169,9 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
           {nav(sidebarCollapsed)}
         </aside>
 
-        <main className="min-w-0 flex-1 px-5 py-8 sm:px-8 lg:py-10">{children}</main>
+        <main className="min-w-0 flex-1 px-5 py-8 sm:px-8 lg:py-10">
+          <div className="mx-auto w-full max-w-[1600px]">{children}</div>
+        </main>
       </div>
     </div>
   );

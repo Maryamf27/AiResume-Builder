@@ -3,9 +3,11 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { MoreHorizontal } from "lucide-react";
 import Button from "@/components/ui/button";
 import { deleteTemplateAction, setPublishedAction } from "@/app/admin/templates/actions";
+import { adminKeys, type AdminTemplatesData } from "@/lib/admin/queries";
 
 export default function TemplateActionsMenu({
   templateId,
@@ -21,6 +23,28 @@ export default function TemplateActionsMenu({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
+  const queryClient = useQueryClient();
+
+  /**
+   * Updates the cached list straight away (so the row changes instantly), runs
+   * the server action, then refreshes all admin data so counts elsewhere catch
+   * up. If the action fails the refresh restores the true state.
+   */
+  async function mutate(
+    action: (formData: FormData) => Promise<void>,
+    update: (old: AdminTemplatesData) => AdminTemplatesData
+  ) {
+    setOpen(false);
+    queryClient.setQueryData<AdminTemplatesData>(adminKeys.templates, (old) => (old ? update(old) : old));
+    const formData = new FormData();
+    formData.set("id", templateId);
+    formData.set("publish", String(!isPublished));
+    try {
+      await action(formData);
+    } finally {
+      await queryClient.invalidateQueries({ queryKey: adminKeys.all });
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -101,19 +125,34 @@ export default function TemplateActionsMenu({
             >
               Edit template
             </Link>
-            <form action={setPublishedAction} onSubmit={() => setOpen(false)}>
-              <input type="hidden" name="id" value={templateId} />
-              <input type="hidden" name="publish" value={String(!isPublished)} />
-              <Button type="submit" size="sm" variant="ghost" className="w-full justify-start">
-                {isPublished ? "Unpublish" : "Publish"}
-              </Button>
-            </form>
-            <form action={deleteTemplateAction} onSubmit={() => setOpen(false)}>
-              <input type="hidden" name="id" value={templateId} />
-              <Button type="submit" size="sm" variant="ghost-destructive" className="w-full justify-start">
-                Delete template
-              </Button>
-            </form>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() =>
+                void mutate(setPublishedAction, (old) => ({
+                  ...old,
+                  templates: old.templates.map((t) => (t.id === templateId ? { ...t, is_published: !isPublished } : t)),
+                }))
+              }
+            >
+              {isPublished ? "Unpublish" : "Publish"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost-destructive"
+              className="w-full justify-start"
+              onClick={() =>
+                void mutate(deleteTemplateAction, (old) => ({
+                  ...old,
+                  templates: old.templates.filter((t) => t.id !== templateId),
+                }))
+              }
+            >
+              Delete template
+            </Button>
           </div>,
           document.body
         )}

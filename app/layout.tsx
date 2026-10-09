@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
+import QueryProvider from "@/components/providers/query-provider";
 import {
   getSiteUrl,
   SITE_DESCRIPTION,
@@ -59,7 +60,7 @@ export default function RootLayout({
       className={`${inter.variable} ${playfairDisplay.variable} antialiased`}
     >
       <body className="bg-cream text-charcoal font-sans min-h-screen">
-        {children}
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );

@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import Button from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { AUTH_ERRORS } from "@/lib/auth/auth-utils";
+import { profileKey } from "@/components/dashboard/dashboard-session";
 
 export default function ProfileForm({
   userId,
@@ -15,7 +16,7 @@ export default function ProfileForm({
   userId: string;
   initialName: string;
 }) {
-  const router = useRouter();
+  const queryClient = useQueryClient();
   const [name, setName] = useState(initialName);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +55,7 @@ export default function ProfileForm({
 
     setSaving(false);
     setSaved(true);
-    router.refresh();
+    queryClient.setQueryData(profileKey(userId), trimmed);
   }
 
   return (

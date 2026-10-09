@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { BriefcaseBusiness, Sparkles } from "lucide-react";
-import DashboardShell from "@/components/dashboard/dashboard-shell";
 
 const tools = [
   {
@@ -19,12 +18,11 @@ const tools = [
 
 export default function CareerToolsPage() {
   return (
-    <DashboardShell>
       <main className="mx-auto w-full max-w-5xl">
         <header className="mb-8">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-charcoal/55">Career Tools</p>
           <h1 className="mt-1 text-2xl font-semibold text-charcoal sm:text-3xl">Choose a tool</h1>
-          <p className="mt-2 text-sm text-charcoal/65">Explore a role, compare it with a resume, or check ATS readiness.</p>
+          <p className="mt-2 text-sm text-charcoal/65">Explore a role or check how ATS-friendly a resume is.</p>
         </header>
         <section className="grid gap-4 sm:grid-cols-2" aria-label="Career tools">
           {tools.map(({ href, title, description, icon: Icon }) => (
@@ -42,6 +40,5 @@ export default function CareerToolsPage() {
           ))}
         </section>
       </main>
-    </DashboardShell>
   );
 }

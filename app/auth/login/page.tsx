@@ -99,7 +99,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-cream">
       {/* Minimal nav */}
       <header className="border-b border-cream-dark/60 bg-cream/80 backdrop-blur-sm">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center px-5 sm:px-8">
+        <div className="mx-auto flex h-14 w-full max-w-7xl items-center px-5 sm:px-8">
           <Link
             href="/"
             className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive-light focus-visible:ring-offset-2 focus-visible:ring-offset-cream"

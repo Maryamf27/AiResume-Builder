@@ -20,7 +20,7 @@ export async function getSessionWithRole() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, full_name")
+    .select("role, full_name, created_at")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -29,6 +29,7 @@ export async function getSessionWithRole() {
     user,
     isAdmin: profile?.role === "admin",
     fullName: profile?.full_name ?? null,
+    createdAt: profile?.created_at ?? null,
   };
 }
 

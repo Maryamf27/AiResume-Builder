@@ -6,7 +6,7 @@ export const SITE_DESCRIPTION =
   "Create a professional resume with modern templates and a live editing experience. Start building for free — no account required.";
 
 export const containerClass =
-  "mx-auto w-full max-w-6xl px-5 sm:px-8 lg:px-12";
+  "mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-12";
 
 export const routes = {
   home: "/",

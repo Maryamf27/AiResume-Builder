@@ -10,10 +10,11 @@ import { checkTemplateCss, checkTemplateSyntax, checkTemplateVariables, renderTe
 import { sampleResume } from "@/lib/templates/sample-data";
 import { enhanceTemplateDesignPrompt } from "@/lib/templates/prompt-enhancer";
 import type { TemplateFormState } from "@/app/admin/templates/actions";
+import { useMarkAdminCacheStale } from "@/lib/admin/use-admin-cache";
 
 const initialState: TemplateFormState = { error: null };
 export default function TemplateCreatorForm({ action }: { action: (prev: TemplateFormState, formData: FormData) => Promise<TemplateFormState> }) {
-  const [state, formAction, pending] = useActionState(action, initialState);
+  const [state, formAction, pending] = useActionState(useMarkAdminCacheStale(action), initialState);
   const [prompt, setPrompt] = useState("");
   const [html, setHtml] = useState("");
   const [css, setCss] = useState("");

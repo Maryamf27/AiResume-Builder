@@ -11,6 +11,7 @@ import { renderTemplateDocument, checkTemplateSyntax } from "@/lib/templates/ren
 import { sampleResume } from "@/lib/templates/sample-data";
 import { STARTER_CSS, STARTER_HTML } from "@/lib/templates/starter-template";
 import type { TemplateFormState } from "@/app/admin/templates/actions";
+import { useMarkAdminCacheStale } from "@/lib/admin/use-admin-cache";
 
 export interface TemplateFormValues {
   name: string;
@@ -54,7 +55,7 @@ export default function TemplateForm({
   initial?: TemplateFormValues;
   submitLabel: string;
 }) {
-  const [state, formAction, pending] = useActionState(action, initialState);
+  const [state, formAction, pending] = useActionState(useMarkAdminCacheStale(action), initialState);
   const [html, setHtml] = useState(initial.html);
   const [css, setCss] = useState(initial.css);
 

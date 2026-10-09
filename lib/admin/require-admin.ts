@@ -1,25 +1,31 @@
+import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-/**
- * Server-side admin gate. Call it at the top of every admin page AND every
- * admin server action: hiding a link is not access control. Non-admins get a
- * 404 so the admin area is not advertised. (The database enforces the same
- * rule through RLS, so this is a second lock, not the only one.)
- */
-export async function requireAdmin() {
+
+const loadAdmin = cache(async () => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/login");
+  const { data, error } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (error || !claims?.sub) return { supabase, user: null, isAdmin: false };
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
-    .eq("id", user.id)
+    .eq("id", claims.sub)
     .maybeSingle();
 
-  if (profile?.role !== "admin") notFound();
+  return {
+    supabase,
+    user: { id: claims.sub, email: typeof claims.email === "string" ? claims.email : null },
+    isAdmin: profile?.role === "admin",
+  };
+});
+
+
+export async function requireAdmin() {
+  const { supabase, user, isAdmin } = await loadAdmin();
+  if (!user) redirect("/auth/login");
+  if (!isAdmin) notFound();
   return { supabase, user };
 }
