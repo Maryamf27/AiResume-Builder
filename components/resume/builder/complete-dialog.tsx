@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AlertCircle, CheckCircle2, Download, Loader2, X } from "lucide-react";
 import Button, { buttonClassName } from "@/components/ui/button";
@@ -18,6 +18,7 @@ export default function CompleteDialog({
   const ref = useRef<HTMLDialogElement>(null);
   const { saveStatus, saveError, persistenceMode, retrySave, completeness } = useResumeBuilder();
   const { download, preparing, error: downloadError, pdfReady } = useResumeDownload();
+  const [downloadStarted, setDownloadStarted] = useState(false);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -87,17 +88,25 @@ export default function CompleteDialog({
         )}
 
         <div className="flex flex-col gap-2">
-          <Button onClick={download} disabled={preparing}>
+          <Button onClick={async () => {
+            setDownloadStarted(false);
+            if (await download()) setDownloadStarted(true);
+          }} disabled={preparing}>
             {preparing ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             ) : (
               <Download className="h-4 w-4" aria-hidden="true" />
             )}
-            {preparing ? "Preparing PDF…" : pdfReady ? "Save PDF As…" : "Download as PDF"}
+            {preparing ? "Preparing your PDF…" : pdfReady ? "Choose where to save PDF" : "Download as PDF"}
           </Button>
           {pdfReady && (
-            <p className="text-xs text-charcoal/60" role="status">
-              Your PDF is ready. Choose where to save it.
+            <p className="text-sm font-medium text-olive-dark" role="status">
+              Your PDF is ready. Select the button above to choose where to save it.
+            </p>
+          )}
+          {downloadStarted && !pdfReady && !downloadError && (
+            <p className="text-sm font-medium text-olive-dark" role="status">
+              Your PDF download has started. You can find it in your downloads.
             </p>
           )}
           {downloadError && (

@@ -12,33 +12,32 @@ import { recordTemplateEvent } from "@/lib/resume/resumes";
 import { useResumeBuilder } from "@/components/resume/builder/resume-builder-context";
 
 export function useResumeDownload() {
-  const { resumeData, title, selectedTemplate, userId } = useResumeBuilder();
+  const { resumeData, title, selectedTemplate, userId, preparedResumePdf, setPreparedResumePdf } = useResumeBuilder();
   const [preparing, setPreparing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [prepared, setPrepared] = useState<{ document: string; filename: string; pdf: Blob } | null>(null);
   const document = useMemo(
     () => buildResumeDocument(selectedTemplate, resumeData, resumePdfFilename(title)),
     [resumeData, selectedTemplate, title]
   );
   const filename = useMemo(() => resumePdfFilename(title), [title]);
-  const pdfReady = Boolean(prepared && prepared.document === document);
+  const pdfReady = Boolean(preparedResumePdf && preparedResumePdf.document === document);
 
   useEffect(() => {
-    if (prepared && prepared.document !== document) setPrepared(null);
-  }, [document, prepared]);
+    if (preparedResumePdf && preparedResumePdf.document !== document) setPreparedResumePdf(null);
+  }, [document, preparedResumePdf, setPreparedResumePdf]);
 
   async function download(): Promise<boolean> {
     if (preparing) return false;
     setPreparing(true);
     setError(null);
     try {
-      if (prepared?.document === document) {
-        await saveGeneratedResumePdf(prepared.pdf, prepared.filename, true);
-        setPrepared(null);
+      if (preparedResumePdf?.document === document) {
+        await saveGeneratedResumePdf(preparedResumePdf.pdf, preparedResumePdf.filename, true);
+        setPreparedResumePdf(null);
       } else {
         const pdf = await generateResumePdf(document, filename);
         if (supportsSaveFilePicker()) {
-          setPrepared({ document, filename, pdf });
+          setPreparedResumePdf({ document, filename, pdf });
           return false;
         }
         await saveGeneratedResumePdf(pdf, filename);

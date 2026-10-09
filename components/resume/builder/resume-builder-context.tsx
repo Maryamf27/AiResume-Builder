@@ -46,6 +46,12 @@ export type SaveStatus = "idle" | "saving" | "saved" | "error";
 export type PersistenceMode = "guest" | "authenticated";
 export type TemplatesDialogState = "closed" | "open";
 
+export interface PreparedResumePdf {
+  document: string;
+  filename: string;
+  pdf: Blob;
+}
+
 const AUTOSAVE_DEBOUNCE_MS = 800;
 
 interface ResumeBuilderContextValue {
@@ -57,6 +63,8 @@ interface ResumeBuilderContextValue {
   title: string;
   updateTitle: (value: string) => void;
   completeness: number;
+  preparedResumePdf: PreparedResumePdf | null;
+  setPreparedResumePdf: (prepared: PreparedResumePdf | null) => void;
 
   persistenceMode: PersistenceMode;
   userId: string | null;
@@ -143,6 +151,7 @@ export function ResumeBuilderProvider({
   const [resumeData, setResumeData] = useState<ResumeData>(createEmptyResumeData);
   const [title, setTitle] = useState<string>(DEFAULT_RESUME_TITLE);
   const [activeSection, setActiveSection] = useState<ResumeSectionId>("personal");
+  const [preparedResumePdf, setPreparedResumePdf] = useState<PreparedResumePdf | null>(null);
 
   const [persistenceMode, setPersistenceMode] = useState<PersistenceMode>("guest");
   const [userId, setUserId] = useState<string | null>(null);
@@ -854,6 +863,8 @@ export function ResumeBuilderProvider({
     title,
     updateTitle,
     completeness,
+    preparedResumePdf,
+    setPreparedResumePdf,
     persistenceMode,
     userId,
     saveStatus,

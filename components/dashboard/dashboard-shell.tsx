@@ -87,7 +87,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-cream">
+    <div className="min-h-screen w-full overflow-x-clip bg-cream">
       {/* Mobile top bar */}
       <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between border-b border-cream-dark/60 bg-cream-light px-5 lg:hidden">
         <Link href="/" className="font-serif text-lg text-charcoal">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -145,29 +146,38 @@ function CategoryBreakdown({ categories }: { categories: ATSCategory[] }) {
 
 function LoadingDashboard() {
   return (
-    <div className="space-y-6" role="status" aria-live="polite">
-      <section className="rounded-xl border border-cream-dark bg-white px-5 py-8 sm:px-8 sm:py-10">
-        <div className="flex flex-col items-center text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-charcoal/55">ATS Score</p>
-          <div
-            aria-hidden="true"
-            className="mt-5 h-48 w-48 animate-pulse rounded-full border-[10px] border-cream-dark sm:h-52 sm:w-52"
-          />
-          <p className="mt-5 flex items-center gap-2 text-lg font-semibold text-charcoal">
-            <Loader2 className="h-5 w-5 animate-spin text-olive" aria-hidden="true" />
-            Analyzing your resume...
-          </p>
-          <p className="mt-3 text-sm text-charcoal/65">
-            Preparing the structured ATS review. Your results will appear when analysis is complete.
-          </p>
+    <div role="status" aria-live="polite">
+      <section className="overflow-hidden rounded-xl border border-cream-dark bg-white">
+        <div className="grid gap-6 p-5 sm:p-7 md:grid-cols-[minmax(0,1.1fr)_minmax(15rem,0.9fr)] md:items-center md:gap-10 md:p-9">
+          <div className="min-w-0">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-olive/10">
+                <Loader2 className="h-5 w-5 animate-spin text-olive" aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-olive">Review in progress</p>
+                <h2 className="mt-1 text-lg font-semibold text-charcoal sm:text-xl">Analyzing your resume</h2>
+                <p className="mt-2 text-sm leading-6 text-charcoal/65">
+                  We’re checking how clearly your experience comes through to applicant tracking systems. Your score and recommendations will appear here when the review is ready.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 h-1.5 overflow-hidden rounded-full bg-cream-dark" aria-hidden="true">
+              <div className="h-full w-1/3 animate-pulse rounded-full bg-olive" />
+            </div>
+            <p className="mt-2 text-xs text-charcoal/50">This may take a little while.</p>
+          </div>
+
+          <div className="rounded-lg bg-cream-light p-4 sm:p-5">
+            <p className="text-sm font-semibold text-charcoal">What we’re reviewing</p>
+            <ul className="mt-3 grid gap-3 text-sm text-charcoal/70">
+              <li className="flex items-center gap-2.5"><CheckCircle2 className="h-4 w-4 shrink-0 text-olive" aria-hidden="true" />Resume structure and section clarity</li>
+              <li className="flex items-center gap-2.5"><CheckCircle2 className="h-4 w-4 shrink-0 text-olive" aria-hidden="true" />Skills and role related keywords</li>
+              <li className="flex items-center gap-2.5"><CheckCircle2 className="h-4 w-4 shrink-0 text-olive" aria-hidden="true" />Readability for applicant tracking systems</li>
+            </ul>
+          </div>
         </div>
       </section>
-
-      <div className="h-64 animate-pulse rounded-xl border border-cream-dark bg-white" aria-hidden="true" />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="h-52 animate-pulse rounded-xl border border-cream-dark bg-white" aria-hidden="true" />
-        <div className="h-52 animate-pulse rounded-xl border border-cream-dark bg-white" aria-hidden="true" />
-      </div>
     </div>
   );
 }
@@ -187,6 +197,26 @@ function EmptyDashboard() {
 }
 
 function ErrorDashboard({ error }: { error: string | null }) {
+  if (error?.includes("already been used")) {
+    return (
+      <section className="rounded-xl border border-cream-dark bg-white px-5 py-10 text-center sm:px-8 sm:py-12">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-olive/10">
+          <Sparkles className="h-6 w-6 text-olive" aria-hidden="true" />
+        </div>
+        <h2 className="mt-5 text-2xl font-semibold text-charcoal sm:text-3xl">Want another ATS review?</h2>
+        <p className="mx-auto mt-3 max-w-xl text-base leading-7 text-charcoal/70 sm:text-lg">
+          You’ve used your free guest analysis. Sign in to analyze again and get tailored suggestions for improving your resume.
+        </p>
+        <Link
+          href="/auth/login"
+          className="mt-7 inline-flex min-h-12 items-center justify-center rounded-md bg-olive px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-olive-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive-light focus-visible:ring-offset-2"
+        >
+          Sign in to analyze again
+        </Link>
+      </section>
+    );
+  }
+
   return (
     <section className="rounded-xl border border-cream-dark bg-white px-5 py-10 text-center sm:px-8">
       <AlertTriangle className="mx-auto h-9 w-9 text-destructive" aria-hidden="true" />
@@ -205,9 +235,9 @@ export default function AtsAnalysisPanel({
   onClose: () => void;
   backLabel?: string;
 }) {
-  const { resumeData, title, updatePersonal, updateEducation, updateExperience, updateProject } = useResumeBuilder();
+  const { resumeData, title, persistenceMode, updatePersonal, updateEducation, updateExperience, updateProject } = useResumeBuilder();
   const [analysis, setAnalysis] = useState<ATSAnalysisData | null>(null);
-  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error" | "empty">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error" | "empty" | "guest_limit">("idle");
   const [error, setError] = useState<string | null>(null);
   const [lastAnalyzedSignature, setLastAnalyzedSignature] = useState<string | null>(null);
   const analysisBusyRef = useRef(false);
@@ -256,21 +286,34 @@ export default function AtsAnalysisPanel({
 
       setAnalysis(payload.data);
       setLastAnalyzedSignature(resumeSignature);
+      if (persistenceMode === "guest") {
+        try {
+          window.localStorage.setItem("ats_guest_analysis_used", "1");
+        } catch {
+          // The API cookie still enforces the guest limit when browser storage is unavailable.
+        }
+      }
       setStatus("ready");
     } catch (caught) {
       setAnalysis(null);
-      setError(caught instanceof Error ? caught.message : "We couldn't safely process the ATS analysis. Please try again.");
-      setStatus("error");
+      const message = caught instanceof Error ? caught.message : "We couldn't safely process the ATS analysis. Please try again.";
+      if (persistenceMode === "guest" && message.includes("already been used")) {
+        setStatus("guest_limit");
+      } else {
+        setError(message);
+        setStatus("error");
+      }
     } finally {
       analysisBusyRef.current = false;
     }
-  }, [hasData, resumeData, resumeSignature]);
+  }, [hasData, persistenceMode, resumeData, resumeSignature]);
 
   const staleAnalysis =
     analysis && lastAnalyzedSignature && lastAnalyzedSignature !== resumeSignature;
   const currentScoreStatus = analysis ? scoreStatus(analysis.overallScore) : null;
 
   const generatePlan = async () => {
+    if (persistenceMode === "guest") return;
     if (planBusyRef.current || !analysis || staleAnalysis) return;
     planBusyRef.current = true;
     setPlanLoading(true);
@@ -320,10 +363,22 @@ export default function AtsAnalysisPanel({
 
   useEffect(() => {
     if (status === "idle" && hasData) {
-      const timer = window.setTimeout(() => void runAnalysis(), 0);
+      const timer = window.setTimeout(() => {
+        if (persistenceMode === "guest") {
+          try {
+            if (window.localStorage.getItem("ats_guest_analysis_used") === "1") {
+              setStatus("guest_limit");
+              return;
+            }
+          } catch {
+            // Continue to the API; its httpOnly cookie remains the source of truth.
+          }
+        }
+        void runAnalysis();
+      }, 0);
       return () => window.clearTimeout(timer);
     }
-  }, [hasData, runAnalysis, status]);
+  }, [hasData, persistenceMode, runAnalysis, status]);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-8 sm:py-7 lg:px-10">
@@ -367,10 +422,21 @@ export default function AtsAnalysisPanel({
 
       {status === "empty" && <EmptyDashboard />}
       {status === "error" && <ErrorDashboard error={error} />}
+      {status === "guest_limit" && (
+        <section className="rounded-xl border border-cream-dark bg-white px-5 py-10 text-center sm:px-8">
+          <h2 className="text-xl font-semibold text-charcoal">Your free guest analysis has been used</h2>
+          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-charcoal/65">
+            Sign in to run another ATS review, get tailored improvement suggestions, and keep your resume with your account.
+          </p>
+          <Link href="/auth/login" className="mt-5 inline-flex min-h-10 items-center justify-center rounded-md bg-olive px-4 py-2 text-sm font-medium text-white hover:bg-olive-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive-light focus-visible:ring-offset-2">
+            Sign in to continue
+          </Link>
+        </section>
+      )}
 
       {status === "ready" && analysis && currentScoreStatus && (
         <div className="space-y-6">
-          <div className="flex justify-center">
+          {persistenceMode === "authenticated" ? <div className="flex justify-center">
             <Button
               type="button"
               variant="outline"
@@ -379,11 +445,13 @@ export default function AtsAnalysisPanel({
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
               Re-analyze
             </Button>
-          </div>
+          </div> : <div className="rounded-lg border border-olive/20 bg-olive/5 px-4 py-3 text-center text-sm text-charcoal/70">
+            This is your one free guest analysis. <Link href="/auth/login" className="font-semibold text-olive-dark underline underline-offset-2">Sign in to analyze again</Link>.
+          </div>}
 
           {staleAnalysis && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="status">
-              This ATS review is based on an earlier version of the resume. Re-analyze to refresh the score.
+              {persistenceMode === "guest" ? "This review is based on an earlier version of the resume. Sign in to run a fresh analysis." : "This ATS review is based on an earlier version of the resume. Re-analyze to refresh the score."}
             </div>
           )}
 
@@ -416,10 +484,10 @@ export default function AtsAnalysisPanel({
 
           {!plan && !appliedPlan && analysis.issues.length > 0 && (
             <section className="rounded-xl border border-olive/20 bg-olive/5 p-5 sm:flex sm:items-center sm:justify-between sm:gap-5 sm:p-6">
-              <div><h2 className="text-lg font-semibold text-charcoal">Ready to improve your ATS results?</h2><p className="mt-1 text-sm leading-6 text-charcoal/70">Review useful updates based on this report. Nothing changes until you provide and approve each detail.</p></div>
-              <Button type="button" variant="primary" className="mt-4 shrink-0 sm:mt-0" disabled={planLoading || Boolean(staleAnalysis)} onClick={() => void generatePlan()}>
+              <div><h2 className="text-lg font-semibold text-charcoal">Ready to improve your ATS results?</h2><p className="mt-1 text-sm leading-6 text-charcoal/70">{persistenceMode === "guest" ? "Sign in to get tailored suggestions and keep your resume with your account." : "Review useful updates based on this report. Nothing changes until you provide and approve each detail."}</p></div>
+              {persistenceMode === "guest" ? <Link href="/auth/login" className="mt-4 inline-flex min-h-10 shrink-0 items-center justify-center rounded-md bg-olive px-4 py-2 text-sm font-medium text-white hover:bg-olive-dark sm:mt-0">Sign in to continue</Link> : <Button type="button" variant="primary" className="mt-4 shrink-0 sm:mt-0" disabled={planLoading || Boolean(staleAnalysis)} onClick={() => void generatePlan()}>
                 {planLoading ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />Finding the most useful ATS improvements...</> : `Make My Resume ATS-Friendly${analysis.issues.length ? ` · ${analysis.issues.length} issues` : ""}`}
-              </Button>
+              </Button>}
               {staleAnalysis && <p className="mt-2 text-xs text-amber-800">Re-analyze before creating suggestions.</p>}
             </section>
           )}

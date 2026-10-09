@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, BriefcaseBusiness, Sparkles, WandSparkles } from "lucide-react";
+import { BriefcaseBusiness, Sparkles } from "lucide-react";
 import DashboardShell from "@/components/dashboard/dashboard-shell";
 
 const tools = [
@@ -15,18 +15,6 @@ const tools = [
     description: "Understand the skills and requirements in a job posting.",
     icon: BriefcaseBusiness,
   },
-  {
-    href: "/dashboard/career-tools/job-analysis?view=match",
-    title: "Job Match",
-    description: "Compare one of your saved resumes with an analyzed job.",
-    icon: BarChart3,
-  },
-  {
-    href: "/dashboard/career-tools/job-analysis?view=improvements",
-    title: "AI Resume Improvements",
-    description: "Review tailored suggestions after matching a resume to a job.",
-    icon: WandSparkles,
-  },
 ];
 
 export default function CareerToolsPage() {
@@ -38,7 +26,7 @@ export default function CareerToolsPage() {
           <h1 className="mt-1 text-2xl font-semibold text-charcoal sm:text-3xl">Choose a tool</h1>
           <p className="mt-2 text-sm text-charcoal/65">Explore a role, compare it with a resume, or check ATS readiness.</p>
         </header>
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2" aria-label="Career tools">
+        <section className="grid gap-4 sm:grid-cols-2" aria-label="Career tools">
           {tools.map(({ href, title, description, icon: Icon }) => (
             <Link
               key={title}

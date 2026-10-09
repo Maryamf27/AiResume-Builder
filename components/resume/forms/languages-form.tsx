@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Plus, Trash2 } from "lucide-react";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import IconButton from "@/components/ui/icon-button";
@@ -38,20 +38,26 @@ export default function LanguagesForm() {
                 />
               </FormField>
             </div>
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <FormField label="Proficiency" htmlFor={`lang-level-${entry.id}`}>
-                <select
-                  id={`lang-level-${entry.id}`}
-                  value={entry.proficiency}
-                  onChange={(e) => updateLanguage(entry.id, { proficiency: e.target.value })}
-                  className="flex h-10 w-full rounded-md border border-cream-dark bg-cream-light px-3 text-sm text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive-light"
-                >
-                  {proficiencyLevels.map((level) => (
-                    <option key={level} value={level}>
-                      {level}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative w-full">
+                  <select
+                    id={`lang-level-${entry.id}`}
+                    value={entry.proficiency}
+                    onChange={(e) => updateLanguage(entry.id, { proficiency: e.target.value })}
+                    className="h-10 w-full min-w-0 appearance-none rounded-md border border-cream-dark bg-cream-light py-2 pl-3 pr-10 text-sm text-charcoal focus-visible:border-olive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive-light"
+                  >
+                    {proficiencyLevels.map((level) => (
+                      <option key={level} value={level} className="bg-cream-light text-charcoal">
+                        {level}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-olive"
+                    aria-hidden="true"
+                  />
+                </div>
               </FormField>
             </div>
             <IconButton
